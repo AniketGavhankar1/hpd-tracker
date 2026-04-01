@@ -273,13 +273,16 @@
       <span id="todayDate"></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-left:8px">
-      <div id="syncBadge" style="display:none;align-items:center;gap:5px;font-size:.74rem;opacity:.9">
+      <div id="syncBadge" style="display:inline-flex;align-items:center;gap:5px;font-size:.74rem;opacity:.9">
         <span id="syncDot" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:#aaa"></span>
         <span id="syncLbl" style="white-space:nowrap"></span>
       </div>
-      <span id="authInfo" style="font-size:.75rem;opacity:.82;white-space:nowrap;display:none"></span>
-      <button id="authBtn" onclick="signIn()" style="padding:6px 13px;border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;color:#fff;background:rgba(255,255,255,.18);white-space:nowrap">&#128273; Sign In (OneDrive)</button>
-      <button onclick="openSetup()" title="OneDrive Settings" style="padding:6px 9px;border:none;border-radius:6px;font-size:.84rem;cursor:pointer;color:#fff;background:rgba(255,255,255,.1)">&#9881;</button>
+      <button onclick="backupJSON()" title="Download JSON backup" style="padding:6px 10px;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;color:#fff;background:rgba(255,255,255,.18);white-space:nowrap">&#11015; Backup</button>
+      <label title="Restore from JSON backup" style="padding:6px 10px;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;color:#fff;background:rgba(255,255,255,.18);white-space:nowrap;margin:0">
+        &#11014; Restore<input type="file" accept=".json" onchange="restoreJSON(event)" style="display:none">
+      </label>
+      <button onclick="openSyncSetup()" title="Cloud Sync Settings" style="padding:6px 10px;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;color:#fff;background:rgba(255,255,255,.15);white-space:nowrap">&#9729; Cloud Sync</button>
+      <button onclick="openSetup()" title="Settings" style="padding:6px 9px;border:none;border-radius:6px;font-size:.84rem;cursor:pointer;color:#fff;background:rgba(255,255,255,.1)">&#9881;</button>
     </div>
   </div>
 </header>
@@ -577,35 +580,99 @@
   </div>
 </div>
 
-<!-- ─── SETUP MODAL ──────────────────────────────────── -->
+<!-- ─── SETUP MODAL (OneDrive/Azure legacy) ─────────── -->
 <div class="modal-overlay" id="setupModal">
   <div class="modal" style="max-width:560px">
     <button class="modal-close" onclick="closeSetup()">&times;</button>
-    <h2>&#9881; OneDrive / Azure Setup</h2>
+    <h2>&#9881; OneDrive / Azure Setup (Optional)</h2>
     <p style="font-size:.87rem;color:var(--muted);margin-bottom:16px">
-      Connect your Microsoft account to store all CR and Daily Log data in
-      <strong>HPD_Projects_Tracker.xlsx</strong> on your OneDrive automatically.
+      If your organisation allows Azure App Registration, you can connect OneDrive.
+      Otherwise use <strong>&#9729; Cloud Sync</strong> (GitHub Gist or JSONBin) or the
+      <strong>Backup / Restore</strong> buttons in the header.
     </p>
-    <div style="background:var(--light);border-radius:8px;padding:14px 16px;margin-bottom:18px;font-size:.82rem;line-height:1.75;border:1px solid var(--border)">
-      <strong>One-time Azure App setup (free):</strong>
-      <ol style="padding-left:18px;margin-top:8px;color:var(--text)">
-        <li>Go to <strong>portal.azure.com</strong> &rarr; <em>App registrations</em> &rarr; <strong>New registration</strong></li>
-        <li>Name it <em>HPD Tracker</em>, choose <em>Accounts in any org directory &amp; personal Microsoft accounts</em></li>
-        <li>Set <strong>Redirect URI</strong> type to <strong>Single-page application (SPA)</strong>, value:
-          <code id="currentUrlSpan" style="background:#e8eef5;padding:2px 6px;border-radius:4px;font-size:.8rem"></code>
-        </li>
-        <li>Copy the <strong>Application (client) ID</strong> and paste it below</li>
-        <li>Under <em>API permissions</em> &rarr; Add &rarr; Microsoft Graph &rarr; Delegated &rarr; <strong>Files.ReadWrite</strong> + <strong>User.Read</strong></li>
-        <li style="color:var(--warning)">&#9888; Serve this file via <strong>HTTP</strong> (VS Code Live Server, or <code>npx serve .</code>) — sign-in does not work over <code>file://</code></li>
-      </ol>
-    </div>
     <div class="form-group" style="margin-bottom:18px">
       <label>Azure App Client ID</label>
       <input id="setupClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:monospace;letter-spacing:.5px">
     </div>
+    <div style="background:#fff8e1;border-radius:8px;padding:12px 14px;margin-bottom:18px;font-size:.82rem;border:1px solid #ffe082;color:#7a5800">
+      &#9888; Azure App Registration requires org admin permission. Use Cloud Sync settings instead if blocked.
+    </div>
     <div class="form-actions">
       <button class="btn btn-primary" onclick="saveSetup()">&#10003; Save &amp; Connect</button>
       <button class="btn btn-outline" onclick="closeSetup()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CLOUD SYNC MODAL ──────────────────────────────── -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal" style="max-width:580px">
+    <button class="modal-close" onclick="closeSyncSetup()">&times;</button>
+    <h2>&#9729; Cloud Sync Settings</h2>
+    <p style="font-size:.86rem;color:var(--muted);margin-bottom:18px">Choose a sync provider. No Azure or org permissions required.</p>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:18px">
+      <button id="stab1" onclick="switchSyncTab(1)" style="padding:9px 18px;border:none;background:none;font-weight:600;font-size:.87rem;cursor:pointer;border-bottom:3px solid var(--accent);color:var(--accent);margin-bottom:-2px">GitHub Gist</button>
+      <button id="stab2" onclick="switchSyncTab(2)" style="padding:9px 18px;border:none;background:none;font-weight:600;font-size:.87rem;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);margin-bottom:-2px">JSONBin.io</button>
+    </div>
+
+    <!-- GitHub Gist tab -->
+    <div id="syncPane1">
+      <div style="background:var(--light);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:.82rem;line-height:1.7;border:1px solid var(--border)">
+        <strong>Setup (2 minutes, free):</strong>
+        <ol style="padding-left:16px;margin-top:6px">
+          <li>Go to <strong>github.com &#8594; Settings &#8594; Developer settings &#8594; Personal access tokens &#8594; Tokens (classic)</strong></li>
+          <li>Click <strong>Generate new token (classic)</strong></li>
+          <li>Give it a note (e.g. <em>HPD Tracker</em>), tick scope: <strong>gist</strong></li>
+          <li>Copy the token and paste below</li>
+          <li>Leave Gist ID blank for first use — it creates one automatically</li>
+        </ol>
+      </div>
+      <div class="form-grid" style="gap:10px">
+        <div class="form-group full">
+          <label>GitHub Personal Access Token</label>
+          <input id="gistToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="font-family:monospace">
+        </div>
+        <div class="form-group full">
+          <label>Gist ID <span style="color:var(--muted);font-weight:400">(auto-filled after first save)</span></label>
+          <input id="gistId" placeholder="Leave blank to create new" style="font-family:monospace">
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="saveGistConfig()">&#10003; Save Config</button>
+        <button class="btn btn-success" onclick="syncToGist()">&#9729; Push to Gist</button>
+        <button class="btn btn-outline" onclick="loadFromGist()">&#11015; Pull from Gist</button>
+      </div>
+      <div id="gistStatus" style="margin-top:10px;font-size:.82rem;color:var(--muted)"></div>
+    </div>
+
+    <!-- JSONBin tab -->
+    <div id="syncPane2" style="display:none">
+      <div style="background:var(--light);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:.82rem;line-height:1.7;border:1px solid var(--border)">
+        <strong>Setup (1 minute, free):</strong>
+        <ol style="padding-left:16px;margin-top:6px">
+          <li>Go to <strong>jsonbin.io</strong> &#8594; Sign up (free)</li>
+          <li>Dashboard &#8594; <strong>API Keys</strong> &#8594; copy your <em>Secret Key</em></li>
+          <li>Paste it below — leave Bin ID blank for first use</li>
+        </ol>
+      </div>
+      <div class="form-grid" style="gap:10px">
+        <div class="form-group full">
+          <label>JSONBin Secret Key</label>
+          <input id="jbKey" type="password" placeholder="$2b$10$..." style="font-family:monospace">
+        </div>
+        <div class="form-group full">
+          <label>Bin ID <span style="color:var(--muted);font-weight:400">(auto-filled after first save)</span></label>
+          <input id="jbBinId" placeholder="Leave blank to create new" style="font-family:monospace">
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="saveJBConfig()">&#10003; Save Config</button>
+        <button class="btn btn-success" onclick="syncToJB()">&#9729; Push to JSONBin</button>
+        <button class="btn btn-outline" onclick="loadFromJB()">&#11015; Pull from JSONBin</button>
+      </div>
+      <div id="jbStatus" style="margin-top:10px;font-size:.82rem;color:var(--muted)"></div>
     </div>
   </div>
 </div>
@@ -615,7 +682,7 @@
 
 <script>
 // ════════════════════════════════════════════
-//  CONFIGURATION — MSAL / OneDrive
+//  CONFIGURATION — MSAL / OneDrive (legacy)
 // ════════════════════════════════════════════
 const GRAPH_BASE  = 'https://graph.microsoft.com/v1.0';
 const EXCEL_FILE  = 'HPD_Projects_Tracker.xlsx';
@@ -648,7 +715,6 @@ function initMsal() {
     }
   } catch(e) {
     console.error('MSAL init error:', e);
-    toast('\u26A0 MSAL init failed. Check your Client ID in \u2699 Settings.');
   }
 }
 
@@ -656,7 +722,7 @@ async function signIn() {
   if (!getClientId()) { openSetup(); return; }
   if (!msalInstance)  { initMsal(); if (!msalInstance) return; }
   if (window.location.protocol === 'file:') {
-    toast('\u26A0 Serve this file via HTTP (VS Code Live Server) to sign in.'); return;
+    toast('\u26A0 Serve this file via HTTP to sign in.'); return;
   }
   try {
     const result = await msalInstance.loginPopup({ scopes: ['Files.ReadWrite', 'User.Read'] });
@@ -674,7 +740,7 @@ async function signOut() {
   try { await msalInstance.logoutPopup({ account: currentAccount }); } catch {}
   currentAccount = null;
   updateAuthUI();
-  toast('Signed out. Data available locally.');
+  toast('Signed out.');
 }
 
 async function getToken() {
@@ -684,27 +750,7 @@ async function getToken() {
   catch { return (await msalInstance.acquireTokenPopup(req)).accessToken; }
 }
 
-function updateAuthUI() {
-  const btn  = document.getElementById('authBtn');
-  const info = document.getElementById('authInfo');
-  const sync = document.getElementById('syncBadge');
-  if (currentAccount) {
-    btn.textContent = 'Sign Out';
-    btn.onclick = signOut;
-    btn.style.background = 'rgba(255,255,255,.12)';
-    info.textContent = '\u2601 ' + (currentAccount.name || currentAccount.username || 'Microsoft');
-    info.style.display = 'inline';
-    sync.style.display = 'inline-flex';
-  } else {
-    btn.textContent = '\uD83D\uDD11 Sign In (OneDrive)';
-    btn.onclick = signIn;
-    btn.style.background = 'rgba(255,255,255,.18)';
-    info.textContent = '';
-    info.style.display = 'none';
-    sync.style.display = 'none';
-    setSyncStatus('idle');
-  }
-}
+function updateAuthUI() { /* OneDrive auth UI removed — using Cloud Sync instead */ }
 
 function setSyncStatus(state) {
   const map = { idle:['#999',''], syncing:['#f0c940','Syncing\u2026'], ok:['#4caf50','Synced \u2713'], error:['#e53935','Sync Error'] };
@@ -776,22 +822,222 @@ async function saveToOneDrive(silent) {
 }
 
 // ════════════════════════════════════════════
-//  SETUP MODAL
+//  SETUP MODAL (OneDrive legacy)
 // ════════════════════════════════════════════
 function openSetup() {
   document.getElementById('setupClientId').value = getClientId();
-  document.getElementById('currentUrlSpan').textContent = getRedirectUri();
   document.getElementById('setupModal').classList.add('open');
 }
 function closeSetup() { document.getElementById('setupModal').classList.remove('open'); }
-
 function saveSetup() {
   const id = document.getElementById('setupClientId').value.trim();
   if (!id) { toast('\u26A0 Please enter a valid Client ID.'); return; }
-  setClientId(id);
-  closeSetup();
-  initMsal();
-  toast('\u2713 Configuration saved. Click Sign In to connect OneDrive.');
+  setClientId(id); closeSetup(); initMsal();
+  toast('\u2713 Configuration saved.');
+}
+
+// ════════════════════════════════════════════
+//  JSON BACKUP / RESTORE
+// ════════════════════════════════════════════
+function backupJSON() {
+  const payload = JSON.stringify({ crs: getCRs(), logs: getLogs(), exportedAt: new Date().toISOString() }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'HPD_Backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  toast('\u2713 Backup downloaded!');
+}
+
+function restoreJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data.crs) || !Array.isArray(data.logs))
+        throw new Error('Invalid backup format');
+      if (!confirm('Restore backup? This will REPLACE all current data.')) return;
+      saveCRs(data.crs);
+      saveLogs(data.logs);
+      renderAll();
+      toast('\u2713 Data restored from backup! (' + data.crs.length + ' CRs, ' + data.logs.length + ' logs)');
+    } catch(err) {
+      toast('\u26A0 Invalid backup file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ════════════════════════════════════════════
+//  CLOUD SYNC MODAL
+// ════════════════════════════════════════════
+function openSyncSetup() {
+  document.getElementById('gistToken').value = localStorage.getItem('hpd_gist_token') || '';
+  document.getElementById('gistId').value    = localStorage.getItem('hpd_gist_id')    || '';
+  document.getElementById('jbKey').value     = localStorage.getItem('hpd_jb_key')     || '';
+  document.getElementById('jbBinId').value   = localStorage.getItem('hpd_jb_bin')     || '';
+  document.getElementById('syncModal').classList.add('open');
+}
+function closeSyncSetup() { document.getElementById('syncModal').classList.remove('open'); }
+
+function switchSyncTab(n) {
+  document.getElementById('syncPane1').style.display = n === 1 ? '' : 'none';
+  document.getElementById('syncPane2').style.display = n === 2 ? '' : 'none';
+  [1,2].forEach(i => {
+    const btn = document.getElementById('stab'+i);
+    btn.style.borderBottomColor = i === n ? 'var(--accent)' : 'transparent';
+    btn.style.color = i === n ? 'var(--accent)' : 'var(--muted)';
+  });
+}
+
+// ── GitHub Gist ──────────────────────────────
+function saveGistConfig() {
+  const token = document.getElementById('gistToken').value.trim();
+  const gid   = document.getElementById('gistId').value.trim();
+  if (!token) { toast('\u26A0 Token required.'); return; }
+  localStorage.setItem('hpd_gist_token', token);
+  if (gid) localStorage.setItem('hpd_gist_id', gid);
+  closeSyncSetup();
+  toast('\u2713 GitHub Gist config saved.');
+}
+
+async function syncToGist() {
+  const token = localStorage.getItem('hpd_gist_token');
+  if (!token) { toast('\u26A0 Configure GitHub Gist first (\u2601 Cloud Sync).'); return; }
+  setSyncStatus('syncing');
+  setGistStatus('Pushing\u2026');
+  try {
+    const content = JSON.stringify({ crs: getCRs(), logs: getLogs(), savedAt: new Date().toISOString() });
+    const gid = localStorage.getItem('hpd_gist_id');
+    let url = 'https://api.github.com/gists';
+    let method = 'POST';
+    let body = { description: 'HPD Tracker Data', public: false, files: { 'hpd_data.json': { content } } };
+    if (gid) { url += '/' + gid; method = 'PATCH'; body = { files: { 'hpd_data.json': { content } } }; }
+    const resp = await fetch(url, {
+      method,
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check token scope (needs: gist)');
+    const json = await resp.json();
+    localStorage.setItem('hpd_gist_id', json.id);
+    document.getElementById('gistId').value = json.id;
+    setSyncStatus('ok');
+    setGistStatus('\u2713 Pushed at ' + new Date().toLocaleTimeString() + ' (Gist ID: ' + json.id + ')');
+    toast('\u2601 Data pushed to GitHub Gist!');
+  } catch(e) {
+    setSyncStatus('error');
+    setGistStatus('\u26A0 Error: ' + e.message);
+    toast('\u26A0 Gist push failed: ' + e.message);
+  }
+}
+
+async function loadFromGist() {
+  const token = localStorage.getItem('hpd_gist_token');
+  const gid   = localStorage.getItem('hpd_gist_id');
+  if (!token || !gid) { toast('\u26A0 Configure GitHub Gist and push data first.'); return; }
+  setSyncStatus('syncing');
+  setGistStatus('Pulling\u2026');
+  try {
+    const resp = await fetch('https://api.github.com/gists/' + gid, {
+      headers: { Authorization: 'Bearer ' + token, 'X-GitHub-Api-Version': '2022-11-28' }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const raw  = json.files['hpd_data.json'];
+    if (!raw) throw new Error('hpd_data.json not found in Gist');
+    const data = JSON.parse(raw.content);
+    if (!confirm('Replace current data with Gist data?')) { setSyncStatus('idle'); setGistStatus(''); return; }
+    saveCRs(data.crs || []);
+    saveLogs(data.logs || []);
+    renderAll();
+    setSyncStatus('ok');
+    setGistStatus('\u2713 Pulled at ' + new Date().toLocaleTimeString());
+    toast('\u2601 Data loaded from GitHub Gist!');
+  } catch(e) {
+    setSyncStatus('error');
+    setGistStatus('\u26A0 Error: ' + e.message);
+    toast('\u26A0 Gist pull failed: ' + e.message);
+  }
+}
+
+function setGistStatus(msg) {
+  const el = document.getElementById('gistStatus');
+  if (el) el.textContent = msg;
+}
+
+// ── JSONBin.io ───────────────────────────────
+function saveJBConfig() {
+  const key = document.getElementById('jbKey').value.trim();
+  const bin = document.getElementById('jbBinId').value.trim();
+  if (!key) { toast('\u26A0 Secret key required.'); return; }
+  localStorage.setItem('hpd_jb_key', key);
+  if (bin) localStorage.setItem('hpd_jb_bin', bin);
+  closeSyncSetup();
+  toast('\u2713 JSONBin config saved.');
+}
+
+async function syncToJB() {
+  const key = localStorage.getItem('hpd_jb_key');
+  if (!key) { toast('\u26A0 Configure JSONBin first (\u2601 Cloud Sync).'); return; }
+  setSyncStatus('syncing');
+  setJBStatus('Pushing\u2026');
+  try {
+    const content = { crs: getCRs(), logs: getLogs(), savedAt: new Date().toISOString() };
+    const binId = localStorage.getItem('hpd_jb_bin');
+    let url = 'https://api.jsonbin.io/v3/b';
+    let method = 'POST';
+    const headers = { 'Content-Type': 'application/json', 'X-Master-Key': key };
+    if (!binId) headers['X-Bin-Name'] = 'HPD-Tracker';
+    if (binId) { url += '/' + binId; method = 'PUT'; }
+    const resp = await fetch(url, { method, headers, body: JSON.stringify(content) });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check your secret key');
+    const json = await resp.json();
+    const id = json.metadata ? json.metadata.id : (json.record ? binId : null);
+    if (id) { localStorage.setItem('hpd_jb_bin', id); document.getElementById('jbBinId').value = id; }
+    setSyncStatus('ok');
+    setJBStatus('\u2713 Pushed at ' + new Date().toLocaleTimeString());
+    toast('\u2601 Data pushed to JSONBin!');
+  } catch(e) {
+    setSyncStatus('error');
+    setJBStatus('\u26A0 Error: ' + e.message);
+    toast('\u26A0 JSONBin push failed: ' + e.message);
+  }
+}
+
+async function loadFromJB() {
+  const key   = localStorage.getItem('hpd_jb_key');
+  const binId = localStorage.getItem('hpd_jb_bin');
+  if (!key || !binId) { toast('\u26A0 Configure JSONBin and push data first.'); return; }
+  setSyncStatus('syncing');
+  setJBStatus('Pulling\u2026');
+  try {
+    const resp = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+      headers: { 'X-Master-Key': key }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const data = json.record;
+    if (!confirm('Replace current data with JSONBin data?')) { setSyncStatus('idle'); setJBStatus(''); return; }
+    saveCRs(data.crs || []);
+    saveLogs(data.logs || []);
+    renderAll();
+    setSyncStatus('ok');
+    setJBStatus('\u2713 Pulled at ' + new Date().toLocaleTimeString());
+    toast('\u2601 Data loaded from JSONBin!');
+  } catch(e) {
+    setSyncStatus('error');
+    setJBStatus('\u26A0 Error: ' + e.message);
+    toast('\u26A0 JSONBin pull failed: ' + e.message);
+  }
+}
+
+function setJBStatus(msg) {
+  const el = document.getElementById('jbStatus');
+  if (el) el.textContent = msg;
 }
 
 // ════════════════════════════════════════════
@@ -1072,8 +1318,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initMsal();
   renderDashboard();
   populateLogCRDropdown();
-  if (!getClientId())
-    setTimeout(() => toast('\uD83D\uDD11 Tip: Click \u2699 to configure OneDrive Excel sync.', 5000), 1200);
+  const hasCloud = localStorage.getItem('hpd_gist_token') || localStorage.getItem('hpd_jb_key');
+  if (!hasCloud)
+    setTimeout(() => toast('\u2601 Tip: Use \u201cCloud Sync\u201d button to enable GitHub Gist or JSONBin sync.', 5000), 1200);
 });
 
 function saveLog() {
