@@ -142,6 +142,12 @@
     .btn-sm { padding: 5px 12px; font-size: .78rem; }
     .form-actions { display: flex; gap: 10px; margin-top: 18px; align-items: center; flex-wrap: wrap; }
 
+    /* ── Checkbox in table ───────────────────────── */
+    table input[type="checkbox"] {
+      width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent);
+    }
+    tr:has(.cr-chk:checked) { background: #eaf4ff !important; }
+
     /* ── Tables ──────────────────────────────────── */
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: .86rem; }
@@ -281,6 +287,9 @@
       <label title="Restore from JSON backup" style="padding:6px 10px;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;color:#fff;background:rgba(255,255,255,.18);white-space:nowrap;margin:0">
         &#11014; Restore<input type="file" accept=".json" onchange="restoreJSON(event)" style="display:none">
       </label>
+      <label title="Import Excel (.xlsx/.xls) — reads all rows and updates tracker" style="padding:6px 10px;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;color:#fff;background:rgba(255,255,255,.22);white-space:nowrap;margin:0">
+        &#128196; Import Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importExcel(event)" style="display:none">
+      </label>
       <button onclick="openSyncSetup()" title="Cloud Sync Settings" style="padding:6px 10px;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;color:#fff;background:rgba(255,255,255,.15);white-space:nowrap">&#9729; Cloud Sync</button>
       <button onclick="openSetup()" title="Settings" style="padding:6px 9px;border:none;border-radius:6px;font-size:.84rem;cursor:pointer;color:#fff;background:rgba(255,255,255,.1)">&#9881;</button>
     </div>
@@ -293,6 +302,11 @@
   <button onclick="showPage('cr-list')">&#128203; CR Register</button>
   <button onclick="showPage('daily-log')">&#128467; Daily Log</button>
   <button onclick="showPage('management')">&#128200; Management View</button>
+  <button onclick="showPage('fl-cr')">&#128203; FL CR Tracker</button>
+  <button onclick="showPage('assign')">&#128101; CR Assignment</button>
+  <button onclick="showPage('ghcp')">&#129302; GHCP Tracker</button>
+  <button onclick="showPage('promo')">&#127920; Promo Tracker</button>
+  <button onclick="showPage('mvno')">&#128225; MVNO Tracker</button>
 </nav>
 
 <!-- ─── DASHBOARD ─────────────────────────────────── -->
@@ -300,26 +314,26 @@
   <div class="kpi-grid" id="kpiGrid"></div>
 
   <div class="card">
-    <h2>&#128204; Active CRs &amp; Projects</h2>
+    <h2>&#128204; Active CR Tracker</h2>
     <div class="filter-bar">
-      <input id="dbSearch" placeholder="Search CR / Project..." oninput="renderDashboardTable()">
+      <input id="dbSearch" placeholder="Search CR Number / Name..." oninput="renderDashboardTable()">
       <select id="dbStatus" onchange="renderDashboardTable()">
-        <option value="">All Statuses</option>
-        <option>Open</option><option>In Progress</option>
-        <option>On Hold</option><option>Completed</option><option>Closed</option>
+        <option value="">All T02 Statuses</option>
+        <option>In Progress</option><option>Passed</option>
+        <option>Failed</option><option>Not Started</option><option>Discontinued</option>
       </select>
-      <select id="dbPriority" onchange="renderDashboardTable()">
-        <option value="">All Priorities</option>
-        <option>High</option><option>Medium</option><option>Low</option>
+      <select id="dbSprint" onchange="renderDashboardTable()">
+        <option value="">All Sprints</option>
       </select>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>CR / Project ID</th><th>Title</th><th>Type</th>
-            <th>Priority</th><th>Status</th><th>Owner</th>
-            <th>Progress</th><th>Due Date</th><th>Actions</th>
+            <th>Sr.No</th><th>Octane No</th><th>CR Number</th><th>CR Name</th><th>ITPM Name</th>
+            <th>Tester</th><th>Sprint</th><th>Release Date</th>
+            <th>Total TCs</th><th>T02 TCs</th><th>T04 TCs</th>
+            <th>Pass %</th><th>T02 CR Status</th><th>T04 CR Status</th><th>Comments</th><th>Actions</th>
           </tr>
         </thead>
         <tbody id="dbTableBody"></tbody>
@@ -336,97 +350,118 @@
 <!-- ─── CR REGISTER ───────────────────────────────── -->
 <div id="cr-list" class="page">
   <div class="card">
-    <h2>&#10133; Add New CR / Project</h2>
+    <h2>&#10133; Add New CR Entry</h2>
     <div class="form-grid" id="crForm">
       <div class="form-group">
-        <label>CR / Project ID *</label>
-        <input id="crId" placeholder="e.g. CR-2026-001 / PROJ-01">
+        <label>Sr. No</label>
+        <input type="number" id="crSrNo" placeholder="e.g. 1">
       </div>
       <div class="form-group">
-        <label>Title *</label>
-        <input id="crTitle" placeholder="Short descriptive title">
+        <label>Octane Tracker No</label>
+        <input id="crOctaneNo" placeholder="Octane tracker number">
       </div>
       <div class="form-group">
-        <label>Type</label>
-        <select id="crType">
-          <option>Change Request</option>
-          <option>New Project</option>
-          <option>Enhancement</option>
-          <option>Bug Fix</option>
-          <option>Maintenance</option>
+        <label>CR Number *</label>
+        <input id="crId" placeholder="e.g. 34496">
+      </div>
+      <div class="form-group">
+        <label>CR Name *</label>
+        <input id="crTitle" placeholder="Full CR name / description">
+      </div>
+      <div class="form-group">
+        <label>ITPM Name</label>
+        <input id="crItpmName" placeholder="ITPM responsible">
+      </div>
+      <div class="form-group">
+        <label>Tester Name</label>
+        <input id="crTesterName" placeholder="Tester assigned">
+      </div>
+      <div class="form-group">
+        <label>Release Milestone Date</label>
+        <input type="date" id="crReleaseDate">
+      </div>
+      <div class="form-group">
+        <label>Sprint</label>
+        <input id="crSprint" placeholder="e.g. 1.1, 2.0, Discontinued">
+      </div>
+      <div class="form-group">
+        <label>Total Test Cases</label>
+        <input type="number" id="crTotalTC" min="0" value="0">
+      </div>
+      <div class="form-group">
+        <label>T02 Test Cases</label>
+        <input type="number" id="crT02TC" min="0" value="0">
+      </div>
+      <div class="form-group">
+        <label>T04 Test Cases</label>
+        <input type="number" id="crT04TC" min="0" value="0">
+      </div>
+      <div class="form-group">
+        <label>Pass %</label>
+        <input type="number" id="crPassPct" min="0" max="100" placeholder="0 – 100">
+      </div>
+      <div class="form-group">
+        <label>T02 CR Status</label>
+        <select id="crT02Status">
+          <option value="">&#8212; Not Set &#8212;</option>
+          <option>Not Started</option><option>In Progress</option>
+          <option>Passed</option><option>Failed</option>
+          <option>Discontinued</option><option>N/A</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Priority</label>
-        <select id="crPriority">
-          <option>High</option><option selected>Medium</option><option>Low</option>
+        <label>T04 CR Status</label>
+        <select id="crT04Status">
+          <option value="">&#8212; Not Set &#8212;</option>
+          <option>Not Started</option><option>In Progress</option>
+          <option>Passed</option><option>Failed</option>
+          <option>Discontinued</option><option>N/A</option>
         </select>
-      </div>
-      <div class="form-group">
-        <label>Status</label>
-        <select id="crStatus">
-          <option>Open</option><option>In Progress</option>
-          <option>On Hold</option><option>Completed</option><option>Closed</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Owner / Assignee</label>
-        <input id="crOwner" placeholder="Name or team">
-      </div>
-      <div class="form-group">
-        <label>Start Date</label>
-        <input type="date" id="crStart">
-      </div>
-      <div class="form-group">
-        <label>Due Date</label>
-        <input type="date" id="crDue">
-      </div>
-      <div class="form-group">
-        <label>Progress (%)</label>
-        <input type="number" id="crProgress" min="0" max="100" value="0" placeholder="0 – 100">
-      </div>
-      <div class="form-group">
-        <label>Requested By</label>
-        <input id="crRequester" placeholder="Stakeholder / Business unit">
       </div>
       <div class="form-group full">
-        <label>Description</label>
-        <textarea id="crDesc" placeholder="Brief description of the CR or project scope..."></textarea>
-      </div>
-      <div class="form-group full">
-        <label>Impact / Notes</label>
-        <textarea id="crNotes" placeholder="Business impact, dependencies, risks..."></textarea>
+        <label>Comments</label>
+        <textarea id="crComments" placeholder="Any comments, blockers or remarks..."></textarea>
       </div>
     </div>
     <div class="form-actions">
-      <button class="btn btn-primary" onclick="saveCR()">&#10003; Save CR / Project</button>
+      <button class="btn btn-primary" onclick="saveCR()">&#10003; Save Entry</button>
       <button class="btn btn-outline" onclick="clearCRForm()">&#10005; Clear</button>
     </div>
   </div>
 
   <div class="card">
-    <h2>&#128203; All CRs &amp; Projects</h2>
+    <h2>&#128203; All CR Tracker Entries</h2>
     <div class="filter-bar">
-      <input id="crSearch" placeholder="Search..." oninput="renderCRTable()">
+      <input id="crSearch" placeholder="Search CR Number / Name / Tester..." oninput="renderCRTable()">
       <select id="crFilterStatus" onchange="renderCRTable()">
-        <option value="">All Statuses</option>
-        <option>Open</option><option>In Progress</option>
-        <option>On Hold</option><option>Completed</option><option>Closed</option>
+        <option value="">All T02 Statuses</option>
+        <option>Not Started</option><option>In Progress</option>
+        <option>Passed</option><option>Failed</option>
+        <option>Discontinued</option><option>N/A</option>
       </select>
-      <select id="crFilterType" onchange="renderCRTable()">
-        <option value="">All Types</option>
-        <option>Change Request</option><option>New Project</option>
-        <option>Enhancement</option><option>Bug Fix</option><option>Maintenance</option>
+      <select id="crFilterSprint" onchange="renderCRTable()">
+        <option value="">All Sprints</option>
       </select>
       <button class="btn btn-outline btn-sm" onclick="exportCSV()">&#11015; Export CSV</button>
+      <label class="btn btn-outline btn-sm" title="Import from Excel" style="cursor:pointer;margin:0">
+        &#128196; Import Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importExcel(event)" style="display:none">
+      </label>
+    </div>
+    <!-- Bulk action bar — shown only when rows are checked -->
+    <div id="crBulkBar" style="display:none;align-items:center;gap:10px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;margin-bottom:10px">
+      <span id="crBulkCount" style="font-weight:600;font-size:.87rem"></span>
+      <button class="btn btn-danger btn-sm" onclick="bulkDeleteCRs()">&#128465; Delete Selected</button>
+      <button class="btn btn-outline btn-sm" onclick="clearCRSelection()">&#10005; Clear Selection</button>
     </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>ID</th><th>Title</th><th>Type</th><th>Priority</th>
-            <th>Status</th><th>Owner</th><th>Progress</th>
-            <th>Due Date</th><th>Actions</th>
+            <th style="width:36px"><input type="checkbox" id="crSelectAll" title="Select all" onchange="toggleAllCRs(this.checked)"></th>
+            <th>Sr.No</th><th>Octane No</th><th>CR Number</th><th>CR Name</th>
+            <th>ITPM Name</th><th>Tester Name</th><th>Sprint</th><th>Release Date</th>
+            <th>Total TCs</th><th>T02 TCs</th><th>T04 TCs</th>
+            <th>Pass %</th><th>T02 Status</th><th>T04 Status</th><th>Comments</th><th>Actions</th>
           </tr>
         </thead>
         <tbody id="crTableBody"></tbody>
@@ -512,11 +547,11 @@
   </div>
 
   <div class="card">
-    <h2>&#9888; High Priority / Overdue Items</h2>
+    <h2>&#9888; Failed / At Risk CRs</h2>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>ID</th><th>Title</th><th>Priority</th><th>Status</th><th>Owner</th><th>Due Date</th><th>Days Overdue</th></tr>
+          <tr><th>CR Number</th><th>CR Name</th><th>ITPM Name</th><th>Tester Name</th><th>Sprint</th><th>T02 CR Status</th><th>T04 CR Status</th><th>Pass %</th><th>Comments</th></tr>
         </thead>
         <tbody id="overdueTable"></tbody>
       </table>
@@ -534,36 +569,181 @@
   </div>
 </div>
 
+<!-- ─── FL CR TRACKER ────────────────────────────── -->
+<div id="fl-cr" class="page">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <h2 style="margin:0">&#128203; FL CR Tracker</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="showModAddForm('fl-cr')">&#10133; Add New</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer">&#128196; Import Excel<input type="file" accept=".xlsx,.xls" style="display:none" onchange="importModExcel(event,'fl-cr')"></label>
+        <button class="btn btn-outline btn-sm" onclick="exportModCSV('fl-cr')">&#8659; Export CSV</button>
+      </div>
+    </div>
+    <div id="fl-cr-addform" style="display:none;margin-bottom:18px;border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--light)">
+      <h3 style="margin:0 0 12px">Add New Entry</h3>
+      <div class="form-grid" id="fl-cr-formfields"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveModRecord('fl-cr')">&#10003; Save</button>
+        <button class="btn btn-outline" onclick="hideModAddForm('fl-cr')">Cancel</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <input id="fl-cr-search" placeholder="Search CR Number / Name / Tester..." oninput="renderModTable('fl-cr')">
+      <select id="fl-cr-status" onchange="renderModTable('fl-cr')">
+        <option value="">All Statuses</option>
+        <option>Not Started</option><option>In Progress</option>
+        <option>Passed</option><option>Failed</option><option>Discontinued</option><option>N/A</option>
+      </select>
+    </div>
+    <div class="table-wrap"><table><thead id="fl-cr-thead"></thead><tbody id="fl-cr-tbody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ─── CR ASSIGNMENT FEASIBILITY ───────────────── -->
+<div id="assign" class="page">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <h2 style="margin:0">&#128101; CR Assignment Feasibility</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="showModAddForm('assign')">&#10133; Add New</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer">&#128196; Import Excel<input type="file" accept=".xlsx,.xls" style="display:none" onchange="importModExcel(event,'assign')"></label>
+        <button class="btn btn-outline btn-sm" onclick="exportModCSV('assign')">&#8659; Export CSV</button>
+      </div>
+    </div>
+    <div id="assign-addform" style="display:none;margin-bottom:18px;border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--light)">
+      <h3 style="margin:0 0 12px">Add New Entry</h3>
+      <div class="form-grid" id="assign-formfields"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveModRecord('assign')">&#10003; Save</button>
+        <button class="btn btn-outline" onclick="hideModAddForm('assign')">Cancel</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <input id="assign-search" placeholder="Search ID / Name / ITPM / Milestone..." oninput="renderModTable('assign')">
+    </div>
+    <div class="table-wrap"><table><thead id="assign-thead"></thead><tbody id="assign-tbody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ─── GHCP TC TRACKER ──────────────────────────── -->
+<div id="ghcp" class="page">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <h2 style="margin:0">&#129302; GHCP TC Tracker</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="showModAddForm('ghcp')">&#10133; Add New</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer">&#128196; Import Excel<input type="file" accept=".xlsx,.xls" style="display:none" onchange="importModExcel(event,'ghcp')"></label>
+        <button class="btn btn-outline btn-sm" onclick="exportModCSV('ghcp')">&#8659; Export CSV</button>
+      </div>
+    </div>
+    <div id="ghcp-addform" style="display:none;margin-bottom:18px;border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--light)">
+      <h3 style="margin:0 0 12px">Add New Entry</h3>
+      <div class="form-grid" id="ghcp-formfields"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveModRecord('ghcp')">&#10003; Save</button>
+        <button class="btn btn-outline" onclick="hideModAddForm('ghcp')">Cancel</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <input id="ghcp-search" placeholder="Search CR Number / Tester / Release..." oninput="renderModTable('ghcp')">
+    </div>
+    <div class="table-wrap"><table><thead id="ghcp-thead"></thead><tbody id="ghcp-tbody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ─── PROMO TRACKER ───────────────────────────── -->
+<div id="promo" class="page">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <h2 style="margin:0">&#127920; Promo Tracker</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="showModAddForm('promo')">&#10133; Add New</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer">&#128196; Import Excel<input type="file" accept=".xlsx,.xls" style="display:none" onchange="importModExcel(event,'promo')"></label>
+        <button class="btn btn-outline btn-sm" onclick="exportModCSV('promo')">&#8659; Export CSV</button>
+      </div>
+    </div>
+    <div id="promo-addform" style="display:none;margin-bottom:18px;border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--light)">
+      <h3 style="margin:0 0 12px">Add New Entry</h3>
+      <div class="form-grid" id="promo-formfields"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveModRecord('promo')">&#10003; Save</button>
+        <button class="btn btn-outline" onclick="hideModAddForm('promo')">Cancel</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <input id="promo-search" placeholder="Search Promotion ID / Name / Coordinator..." oninput="renderModTable('promo')">
+    </div>
+    <div class="table-wrap"><table><thead id="promo-thead"></thead><tbody id="promo-tbody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ─── MVNO TRACKER ───────────────────────────── -->
+<div id="mvno" class="page">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <h2 style="margin:0">&#128225; MVNO Tracker</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="showModAddForm('mvno')">&#10133; Add New</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer">&#128196; Import Excel<input type="file" accept=".xlsx,.xls" style="display:none" onchange="importModExcel(event,'mvno')"></label>
+        <button class="btn btn-outline btn-sm" onclick="exportModCSV('mvno')">&#8659; Export CSV</button>
+      </div>
+    </div>
+    <div id="mvno-addform" style="display:none;margin-bottom:18px;border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--light)">
+      <h3 style="margin:0 0 12px">Add New Entry</h3>
+      <div class="form-grid" id="mvno-formfields"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveModRecord('mvno')">&#10003; Save</button>
+        <button class="btn btn-outline" onclick="hideModAddForm('mvno')">Cancel</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <input id="mvno-search" placeholder="Search CR Number / Name / Tester..." oninput="renderModTable('mvno')">
+      <select id="mvno-status" onchange="renderModTable('mvno')">
+        <option value="">All Statuses</option>
+        <option>Not Started</option><option>In Testing</option>
+        <option>Passed</option><option>Failed</option><option>Discontinued</option>
+      </select>
+    </div>
+    <div class="table-wrap"><table><thead id="mvno-thead"></thead><tbody id="mvno-tbody"></tbody></table></div>
+  </div>
+</div>
+
 <!-- ─── EDIT MODAL ─────────────────────────────────── -->
 <div class="modal-overlay" id="editModal">
-  <div class="modal">
+  <div class="modal" style="max-width:780px">
     <button class="modal-close" onclick="closeModal()">&times;</button>
-    <h2>&#9998; Edit CR / Project</h2>
+    <h2>&#9998; Edit CR Entry</h2>
     <div class="form-grid">
-      <div class="form-group"><label>CR / Project ID</label><input id="eId" disabled></div>
-      <div class="form-group"><label>Title</label><input id="eTitle"></div>
-      <div class="form-group"><label>Type</label>
-        <select id="eType">
-          <option>Change Request</option><option>New Project</option>
-          <option>Enhancement</option><option>Bug Fix</option><option>Maintenance</option>
+      <div class="form-group"><label>Sr. No</label><input type="number" id="eSrNo"></div>
+      <div class="form-group"><label>Octane Tracker No</label><input id="eOctaneNo"></div>
+      <div class="form-group"><label>CR Number</label><input id="eId" disabled></div>
+      <div class="form-group"><label>CR Name</label><input id="eTitle"></div>
+      <div class="form-group"><label>ITPM Name</label><input id="eItpmName"></div>
+      <div class="form-group"><label>Tester Name</label><input id="eTesterName"></div>
+      <div class="form-group"><label>Release Milestone Date</label><input type="date" id="eReleaseDate"></div>
+      <div class="form-group"><label>Sprint</label><input id="eSprint"></div>
+      <div class="form-group"><label>Total Test Cases</label><input type="number" id="eTotalTC" min="0"></div>
+      <div class="form-group"><label>T02 Test Cases</label><input type="number" id="eT02TC" min="0"></div>
+      <div class="form-group"><label>T04 Test Cases</label><input type="number" id="eT04TC" min="0"></div>
+      <div class="form-group"><label>Pass %</label><input type="number" id="ePassPct" min="0" max="100"></div>
+      <div class="form-group"><label>T02 CR Status</label>
+        <select id="eT02Status">
+          <option value="">&#8212; Not Set &#8212;</option>
+          <option>Not Started</option><option>In Progress</option>
+          <option>Passed</option><option>Failed</option>
+          <option>Discontinued</option><option>N/A</option>
         </select>
       </div>
-      <div class="form-group"><label>Priority</label>
-        <select id="ePriority"><option>High</option><option>Medium</option><option>Low</option></select>
-      </div>
-      <div class="form-group"><label>Status</label>
-        <select id="eStatus">
-          <option>Open</option><option>In Progress</option>
-          <option>On Hold</option><option>Completed</option><option>Closed</option>
+      <div class="form-group"><label>T04 CR Status</label>
+        <select id="eT04Status">
+          <option value="">&#8212; Not Set &#8212;</option>
+          <option>Not Started</option><option>In Progress</option>
+          <option>Passed</option><option>Failed</option>
+          <option>Discontinued</option><option>N/A</option>
         </select>
       </div>
-      <div class="form-group"><label>Owner</label><input id="eOwner"></div>
-      <div class="form-group"><label>Start Date</label><input type="date" id="eStart"></div>
-      <div class="form-group"><label>Due Date</label><input type="date" id="eDue"></div>
-      <div class="form-group"><label>Progress (%)</label><input type="number" id="eProgress" min="0" max="100"></div>
-      <div class="form-group"><label>Requested By</label><input id="eRequester"></div>
-      <div class="form-group full"><label>Description</label><textarea id="eDesc"></textarea></div>
-      <div class="form-group full"><label>Impact / Notes</label><textarea id="eNotes"></textarea></div>
+      <div class="form-group full"><label>Comments</label><textarea id="eComments"></textarea></div>
     </div>
     <div class="form-actions">
       <button class="btn btn-primary" onclick="updateCR()">&#10003; Update</button>
@@ -577,6 +757,19 @@
   <div class="modal">
     <button class="modal-close" onclick="closeDetailModal()">&times;</button>
     <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- ─── GENERIC MODULE EDIT MODAL ─────────────────── -->
+<div class="modal-overlay" id="modEditModal">
+  <div class="modal" style="max-width:820px">
+    <button class="modal-close" onclick="closeModEdit()">&times;</button>
+    <h2 id="modEditTitle">&#9998; Edit Record</h2>
+    <div class="form-grid" id="modEditFields"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="updateMod()">&#10003; Update</button>
+      <button class="btn btn-outline" onclick="closeModEdit()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -639,10 +832,14 @@
           <input id="gistId" placeholder="Leave blank to create new" style="font-family:monospace">
         </div>
       </div>
-      <div class="form-actions" style="margin-top:14px">
+      <div style="background:#e8f5e9;border-radius:7px;padding:9px 12px;font-size:.81rem;color:#1b5e20;border:1px solid #a5d6a7;margin-bottom:10px" id="gistAutoInfo">
+        &#9729; <strong>Auto-sync is ON</strong> — every save &amp; delete is pushed to Gist automatically. Data loads from Gist when the page opens.
+      </div>
+      <div class="form-actions" style="margin-top:14px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="saveGistConfig()">&#10003; Save Config</button>
-        <button class="btn btn-success" onclick="syncToGist()">&#9729; Push to Gist</button>
-        <button class="btn btn-outline" onclick="loadFromGist()">&#11015; Pull from Gist</button>
+        <button class="btn btn-success" onclick="syncToGist()">&#9729; Push Now</button>
+        <button class="btn btn-outline" onclick="loadFromGist()">&#11015; Pull Now</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteGistData()" title="Delete the Gist from GitHub (local data kept)">&#128465; Delete Cloud Gist</button>
       </div>
       <div id="gistStatus" style="margin-top:10px;font-size:.82rem;color:var(--muted)"></div>
     </div>
@@ -667,10 +864,14 @@
           <input id="jbBinId" placeholder="Leave blank to create new" style="font-family:monospace">
         </div>
       </div>
-      <div class="form-actions" style="margin-top:14px">
+      <div style="background:#e8f5e9;border-radius:7px;padding:9px 12px;font-size:.81rem;color:#1b5e20;border:1px solid #a5d6a7;margin-bottom:10px">
+        &#9729; <strong>Auto-sync is ON</strong> — every save &amp; delete is pushed to JSONBin automatically. Data loads from JSONBin when the page opens.
+      </div>
+      <div class="form-actions" style="margin-top:14px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="saveJBConfig()">&#10003; Save Config</button>
-        <button class="btn btn-success" onclick="syncToJB()">&#9729; Push to JSONBin</button>
-        <button class="btn btn-outline" onclick="loadFromJB()">&#11015; Pull from JSONBin</button>
+        <button class="btn btn-success" onclick="syncToJB()">&#9729; Push Now</button>
+        <button class="btn btn-outline" onclick="loadFromJB()">&#11015; Pull Now</button>
+        <button class="btn btn-danger btn-sm" onclick="clearJBData()" title="Wipe all data from JSONBin (local data kept)">&#128465; Clear Cloud Data</button>
       </div>
       <div id="jbStatus" style="margin-top:10px;font-size:.82rem;color:var(--muted)"></div>
     </div>
@@ -872,6 +1073,260 @@ function restoreJSON(event) {
 }
 
 // ════════════════════════════════════════════
+//  EXCEL IMPORT
+// ════════════════════════════════════════════
+// Accepts .xlsx / .xls / .csv. Reads all rows from the first sheet (or one
+// named 'CRs'), maps columns by name (flexible), and either adds new CRs or
+// updates existing ones matched by ID.
+function importExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', raw: false, cellDates: true });
+      let totalAdded = 0, totalUpdated = 0, sheetsDone = [];
+
+      // ── Helper: normalize row keys ──────────────────────────
+      const norm = rawRow => {
+        const r = {};
+        Object.keys(rawRow).forEach(k => { r[k.toLowerCase().trim().replace(/\s+/g,' ')] = rawRow[k]; });
+        return r;
+      };
+      const get = (r, ...aliases) => {
+        for (const a of aliases) {
+          const val = r[a.toLowerCase()];
+          if (val !== undefined && val !== '') return String(val).trim();
+        }
+        return '';
+      };
+
+      // ── 1. CR Tracker ───────────────────────────────────────
+      const crSheetName = wb.SheetNames.find(s => s.trim() === 'CR Tracker');
+      if (crSheetName) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[crSheetName], { defval: '' });
+        const crs  = getCRs();
+        let a = 0, u = 0;
+        rows.forEach(rawRow => {
+          const r  = norm(rawRow);
+          const id = get(r,'cr number','cr no','crnumber','id','cr id');
+          if (!id) return;
+          const mapped = {
+            id, title: get(r,'cr name','crname','name','title'),
+            srNo: get(r,'sr. no','sr no','srno','sr'),
+            octaneNo: get(r,'octane tracker no','octane no','octane tracker','octane'),
+            itpmName: get(r,'itpm name','itpm'),
+            testerName: get(r,'tester name','tester'),
+            releaseDate: excelDateStr(r['release milestone date'] ?? r['release date'] ?? ''),
+            sprint: get(r,'sprint'),
+            totalTC: parseInt(get(r,'total test cases','total tc','total tcs','total test case')) || 0,
+            t02TC:   parseInt(get(r,'t02 test cases','t02 tc','t02 tcs','t02 test case'))        || 0,
+            t04TC:   parseInt(get(r,'t04 test cases','t04 tc','t04 tcs','t04 test case'))        || 0,
+            passPct: parseFloat(get(r,'pass %','pass percent','pass%','pass')) || 0,
+            t02Status: get(r,'t02 cr status','t02 status','t02'),
+            t04Status: get(r,'t04 cr status','t04 status','t04'),
+            comments:  get(r,'comments','commnets','comment','remarks'),
+          };
+          const idx = crs.findIndex(c => c.id === id);
+          if (idx >= 0) { Object.keys(mapped).forEach(k => { if (k!=='id' && mapped[k]!=='') crs[idx][k]=mapped[k]; }); crs[idx].updated=new Date().toISOString(); u++; }
+          else { crs.push({...mapped, created: new Date().toISOString()}); a++; }
+        });
+        if (a+u > 0) { persistCRs(crs); totalAdded+=a; totalUpdated+=u; sheetsDone.push(`CR Tracker (${a}+${u})`); }
+      }
+
+      // ── 2. FL CR Tracker ─────────────────────────────────────
+      const flSheetName = wb.SheetNames.find(s => s.trim() === 'FL CR Tracker');
+      if (flSheetName) {
+        const cfg  = MOD_CFG['fl-cr'];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[flSheetName], { defval: '' });
+        const data = modGet(cfg);
+        let a = 0, u = 0;
+        rows.forEach(rawRow => {
+          const r  = norm(rawRow);
+          const id = get(r,'cr number','cr no','id');
+          if (!id) return;
+          const mapped = {
+            id, title: get(r,'cr name','name'),
+            srNo: get(r,'sr. no','sr no','srno'),
+            itpmName: get(r,'itpm name','itpm'),
+            testerName: get(r,'tester name','tester'),
+            releaseDate: excelDateStr(r['release milestone date'] ?? r['release date'] ?? ''),
+            sprint: get(r,'sprint'),
+            totalTC: parseInt(get(r,'total test case','total test cases','total tc')) || 0,
+            t02TC:   parseInt(get(r,'t02 test cases','t02 tc')) || 0,
+            t04TC:   parseInt(get(r,'t04 test cases','t04 tc')) || 0,
+            passPct: parseFloat(get(r,'pass %','pass percent')) || 0,
+            crStatus: get(r,'cr status','status'),
+            comments: get(r,'commnets','comments','remarks'),
+          };
+          const idx = data.findIndex(x => x.id === id);
+          if (idx >= 0) { Object.keys(mapped).forEach(k => { if (k!=='id' && mapped[k]!=='') data[idx][k]=mapped[k]; }); data[idx].updated=new Date().toISOString(); u++; }
+          else { data.push({...mapped, created: new Date().toISOString()}); a++; }
+        });
+        if (a+u > 0) { modSave(cfg, data); totalAdded+=a; totalUpdated+=u; sheetsDone.push(`FL CR Tracker (${a}+${u})`); }
+      }
+
+      // ── 3. CR Assignment Feasibility ────────────────────────
+      const asSheetName = wb.SheetNames.find(s => s.trim().toLowerCase().includes('assgnment') || s.trim().toLowerCase().includes('assignment'));
+      if (asSheetName) {
+        const cfg  = MOD_CFG['assign'];
+        const ws   = wb.Sheets[asSheetName];
+        // This sheet has headers on row 3 — use header row option
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '', range: 2 });
+        const data = modGet(cfg);
+        let a = 0, u = 0;
+        rows.forEach(rawRow => {
+          const r  = norm(rawRow);
+          const id = get(r,'id');
+          if (!id) return;
+          const mapped = {
+            id, milestone: get(r,'milestone'),
+            appModules: get(r,'application modules'),
+            itpm: get(r,'it pm','itpm'),
+            projectId: get(r,'project id'),
+            name: get(r,'name'),
+            tcName: get(r,'tc name'),
+          };
+          const idx = data.findIndex(x => x.id === id);
+          if (idx >= 0) { Object.keys(mapped).forEach(k => { if (k!=='id' && mapped[k]!=='') data[idx][k]=mapped[k]; }); data[idx].updated=new Date().toISOString(); u++; }
+          else { data.push({...mapped, created: new Date().toISOString()}); a++; }
+        });
+        if (a+u > 0) { modSave(cfg, data); totalAdded+=a; totalUpdated+=u; sheetsDone.push(`CR Assignment (${a}+${u})`); }
+      }
+
+      // ── 4. GHCP TC Tracker ──────────────────────────────────
+      const ghSheetName = wb.SheetNames.find(s => s.trim().toLowerCase().includes('ghcp tc'));
+      if (ghSheetName) {
+        const cfg  = MOD_CFG['ghcp'];
+        const ws   = wb.Sheets[ghSheetName];
+        // Headers on row 2
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '', range: 1 });
+        const data = modGet(cfg);
+        let a = 0, u = 0;
+        rows.forEach(rawRow => {
+          const r  = norm(rawRow);
+          const id = get(r,'cr number','cr no','id');
+          if (!id) return;
+          const mapped = {
+            id, description: get(r,'cr description','description'),
+            tester: get(r,'tester'),
+            release: get(r,'release'),
+            totalTC:     parseInt(get(r,'total test cases','total tc')) || 0,
+            copilotTC:   parseInt(get(r,'co pilot tc generated','copilot tc generated')) || 0,
+            manualTC:    parseInt(get(r,'test cases manually written or modified','manually written')) || 0,
+            accuracy:    Math.round((parseFloat(get(r,'% accuracy','accuracy')) || 0) * 100),
+            manualEffort: parseFloat(get(r,'manual effort')) || 0,
+            timeSaved:   parseFloat(get(r,'time saved in hrs','time saved')) || 0,
+            defects:     parseInt(get(r,'defects via copilot test cases','defects')) || 0,
+            pctDDR:      Math.round((parseFloat(get(r,'% copilot - ddr','% copilot ddr')) || 0) * 100),
+          };
+          const idx = data.findIndex(x => x.id === id);
+          if (idx >= 0) { Object.keys(mapped).forEach(k => { if (k!=='id' && mapped[k]!==0 && mapped[k]!=='') data[idx][k]=mapped[k]; }); data[idx].updated=new Date().toISOString(); u++; }
+          else { data.push({...mapped, created: new Date().toISOString()}); a++; }
+        });
+        if (a+u > 0) { modSave(cfg, data); totalAdded+=a; totalUpdated+=u; sheetsDone.push(`GHCP TC (${a}+${u})`); }
+      }
+
+      // ── 5. Promo ─────────────────────────────────────────────
+      const prSheetName = wb.SheetNames.find(s => s.trim() === 'Promo');
+      if (prSheetName) {
+        const cfg  = MOD_CFG['promo'];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[prSheetName], { defval: '' });
+        const data = modGet(cfg);
+        let a = 0, u = 0;
+        rows.forEach(rawRow => {
+          const r  = norm(rawRow);
+          const id = get(r,'promotion id','promo id','id');
+          if (!id) return;
+          const mapped = {
+            id, name: get(r,'promotion  name','promotion name','name'),
+            testCoordinator: get(r,'test coordinator','coordinator'),
+            testEnv: get(r,'test env','env'),
+            timelineT1:    excelDateStr(r['timeline for t1'] ?? r['timeline t1'] ?? ''),
+            plannedGoLive: excelDateStr(r['planned go live'] ?? ''),
+            actualGoLive:  excelDateStr(r['actual go live'] ?? ''),
+            notes: get(r,'notes/comments','notes','comments'),
+          };
+          const idx = data.findIndex(x => x.id === id);
+          if (idx >= 0) { Object.keys(mapped).forEach(k => { if (k!=='id' && mapped[k]!=='') data[idx][k]=mapped[k]; }); data[idx].updated=new Date().toISOString(); u++; }
+          else { data.push({...mapped, created: new Date().toISOString()}); a++; }
+        });
+        if (a+u > 0) { modSave(cfg, data); totalAdded+=a; totalUpdated+=u; sheetsDone.push(`Promo (${a}+${u})`); }
+      }
+
+      // ── 6. MVNO Tracker ──────────────────────────────────────
+      const mvSheetName = wb.SheetNames.find(s => s.trim().toLowerCase().includes('mvno'));
+      if (mvSheetName) {
+        const cfg  = MOD_CFG['mvno'];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[mvSheetName], { defval: '' });
+        const data = modGet(cfg);
+        let a = 0, u = 0;
+        rows.forEach(rawRow => {
+          const r  = norm(rawRow);
+          const id = get(r,'cr number','cr no','id');
+          if (!id) return;
+          const mapped = {
+            id, title: get(r,'cr name','name'),
+            srNo: get(r,'sr. no','sr no','srno'),
+            itpmName: get(r,'itpm name','itpm'),
+            testerName: get(r,'tester name','tester'),
+            releaseDate: excelDateStr(r['release milestone date'] ?? r['release date'] ?? ''),
+            sprint: get(r,'sprint'),
+            t02TC:    parseInt(get(r,'t02 test cases','t02 tc')) || 0,
+            t03TC:    parseInt(get(r,'t03 test cases','t03 tc')) || 0,
+            t04TC:    parseInt(get(r,'t04 test cases','t04 tc')) || 0,
+            t02Start: excelDateStr(r['t02 test start date'] ?? r['t02 start'] ?? ''),
+            t03Start: excelDateStr(r['t03 test start date'] ?? r['t03 start'] ?? ''),
+            t04Start: excelDateStr(r['t04 test start date'] ?? r['t04 start'] ?? ''),
+            passPct:  parseFloat(get(r,'pass %','pass percent')) || 0,
+            status:   get(r,'cr status','status'),
+            comments: get(r,'commnets','comments','remarks'),
+          };
+          const idx = data.findIndex(x => x.id === id);
+          if (idx >= 0) { Object.keys(mapped).forEach(k => { if (k!=='id' && mapped[k]!==0 && mapped[k]!=='') data[idx][k]=mapped[k]; }); data[idx].updated=new Date().toISOString(); u++; }
+          else { data.push({...mapped, created: new Date().toISOString()}); a++; }
+        });
+        if (a+u > 0) { modSave(cfg, data); totalAdded+=a; totalUpdated+=u; sheetsDone.push(`MVNO (${a}+${u})`); }
+      }
+
+      if (sheetsDone.length > 0) {
+        renderAll();
+        toast(`\u2713 Imported from ${sheetsDone.length} sheet(s): ${sheetsDone.join(', ')}. Total: ${totalAdded} added, ${totalUpdated} updated.`, 5000);
+      } else {
+        toast('\u26A0 No matching sheets found in this file. Expected: "CR Tracker", "FL CR Tracker", "Promo", "MVNO Tracker", etc.', 5000);
+      }
+    } catch(err) {
+      toast('\u26A0 Failed to read Excel: ' + err.message);
+      console.error('Excel import error:', err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
+// Convert an Excel value to a YYYY-MM-DD string.
+// Handles: JS Date object (from cellDates:true), Excel serial number, or a string.
+function excelDateStr(val) {
+  if (!val && val !== 0) return '';
+  if (val instanceof Date) {
+    if (isNaN(val)) return '';
+    return val.toISOString().split('T')[0];
+  }
+  if (typeof val === 'number') {
+    try {
+      const d = XLSX.SSF.parse_date_code(val);
+      if (d) return String(d.y) + '-' + String(d.m).padStart(2,'0') + '-' + String(d.d).padStart(2,'0');
+    } catch {}
+  }
+  const s = String(val).trim();
+  if (!s) return '';
+  const d = new Date(s);
+  if (!isNaN(d)) return d.toISOString().split('T')[0];
+  return s;   // return raw string if unparseable
+}
+
+// ════════════════════════════════════════════
 //  CLOUD SYNC MODAL
 // ════════════════════════════════════════════
 function openSyncSetup() {
@@ -904,11 +1359,11 @@ function saveGistConfig() {
   toast('\u2713 GitHub Gist config saved.');
 }
 
-async function syncToGist() {
+async function syncToGist(silent) {
   const token = localStorage.getItem('hpd_gist_token');
-  if (!token) { toast('\u26A0 Configure GitHub Gist first (\u2601 Cloud Sync).'); return; }
+  if (!token) { if (!silent) toast('\u26A0 Configure GitHub Gist first (\u2601 Cloud Sync).'); return; }
   setSyncStatus('syncing');
-  setGistStatus('Pushing\u2026');
+  if (!silent) setGistStatus('Pushing\u2026');
   try {
     const content = JSON.stringify({ crs: getCRs(), logs: getLogs(), savedAt: new Date().toISOString() });
     const gid = localStorage.getItem('hpd_gist_id');
@@ -924,14 +1379,14 @@ async function syncToGist() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check token scope (needs: gist)');
     const json = await resp.json();
     localStorage.setItem('hpd_gist_id', json.id);
-    document.getElementById('gistId').value = json.id;
+    if (!silent) { document.getElementById('gistId').value = json.id; }
     setSyncStatus('ok');
-    setGistStatus('\u2713 Pushed at ' + new Date().toLocaleTimeString() + ' (Gist ID: ' + json.id + ')');
-    toast('\u2601 Data pushed to GitHub Gist!');
+    if (!silent) setGistStatus('\u2713 Pushed at ' + new Date().toLocaleTimeString() + ' (Gist ID: ' + json.id + ')');
+    if (!silent) toast('\u2601 Data pushed to GitHub Gist!');
+    else toast('\u2601 Auto-synced to cloud \u2713', 1800);
   } catch(e) {
     setSyncStatus('error');
-    setGistStatus('\u26A0 Error: ' + e.message);
-    toast('\u26A0 Gist push failed: ' + e.message);
+    if (!silent) { setGistStatus('\u26A0 Error: ' + e.message); toast('\u26A0 Gist push failed: ' + e.message); }
   }
 }
 
@@ -980,11 +1435,11 @@ function saveJBConfig() {
   toast('\u2713 JSONBin config saved.');
 }
 
-async function syncToJB() {
+async function syncToJB(silent) {
   const key = localStorage.getItem('hpd_jb_key');
-  if (!key) { toast('\u26A0 Configure JSONBin first (\u2601 Cloud Sync).'); return; }
+  if (!key) { if (!silent) toast('\u26A0 Configure JSONBin first (\u2601 Cloud Sync).'); return; }
   setSyncStatus('syncing');
-  setJBStatus('Pushing\u2026');
+  if (!silent) setJBStatus('Pushing\u2026');
   try {
     const content = { crs: getCRs(), logs: getLogs(), savedAt: new Date().toISOString() };
     const binId = localStorage.getItem('hpd_jb_bin');
@@ -997,14 +1452,14 @@ async function syncToJB() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — check your secret key');
     const json = await resp.json();
     const id = json.metadata ? json.metadata.id : (json.record ? binId : null);
-    if (id) { localStorage.setItem('hpd_jb_bin', id); document.getElementById('jbBinId').value = id; }
+    if (id) { localStorage.setItem('hpd_jb_bin', id); if (!silent) document.getElementById('jbBinId').value = id; }
     setSyncStatus('ok');
-    setJBStatus('\u2713 Pushed at ' + new Date().toLocaleTimeString());
-    toast('\u2601 Data pushed to JSONBin!');
+    if (!silent) setJBStatus('\u2713 Pushed at ' + new Date().toLocaleTimeString());
+    if (!silent) toast('\u2601 Data pushed to JSONBin!');
+    else toast('\u2601 Auto-synced to cloud \u2713', 1800);
   } catch(e) {
     setSyncStatus('error');
-    setJBStatus('\u26A0 Error: ' + e.message);
-    toast('\u26A0 JSONBin push failed: ' + e.message);
+    if (!silent) { setJBStatus('\u26A0 Error: ' + e.message); toast('\u26A0 JSONBin push failed: ' + e.message); }
   }
 }
 
@@ -1041,6 +1496,114 @@ function setJBStatus(msg) {
 }
 
 // ════════════════════════════════════════════
+//  AUTO-SYNC & AUTO-LOAD  (cloud persistence)
+// ════════════════════════════════════════════
+let _autoSyncTimer = null;
+function autoSyncToCloud() {
+  clearTimeout(_autoSyncTimer);
+  _autoSyncTimer = setTimeout(() => {
+    const gistToken = localStorage.getItem('hpd_gist_token');
+    const jbKey     = localStorage.getItem('hpd_jb_key');
+    if (gistToken)  syncToGist(true);
+    else if (jbKey) syncToJB(true);
+  }, 1500);
+}
+
+// Silent load from Gist on page open (no confirm)
+async function autoLoadFromGist() {
+  const token = localStorage.getItem('hpd_gist_token');
+  const gid   = localStorage.getItem('hpd_gist_id');
+  if (!token || !gid) return;
+  setSyncStatus('syncing');
+  try {
+    const resp = await fetch('https://api.github.com/gists/' + gid, {
+      headers: { Authorization: 'Bearer ' + token, 'X-GitHub-Api-Version': '2022-11-28' }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const raw  = json.files['hpd_data.json'];
+    if (!raw) { setSyncStatus('ok'); return; }
+    const data = JSON.parse(raw.content);
+    if (Array.isArray(data.crs) && Array.isArray(data.logs)) {
+      saveCRs(data.crs); saveLogs(data.logs);
+      renderAll();
+      setSyncStatus('ok');
+      toast('\u2601 Data loaded from cloud (GitHub Gist) \u2713', 2500);
+    }
+  } catch(e) {
+    setSyncStatus('error');
+    console.warn('Auto-load from Gist failed:', e.message);
+  }
+}
+
+// Silent load from JSONBin on page open (no confirm)
+async function autoLoadFromJB() {
+  const key   = localStorage.getItem('hpd_jb_key');
+  const binId = localStorage.getItem('hpd_jb_bin');
+  if (!key || !binId) return;
+  setSyncStatus('syncing');
+  try {
+    const resp = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+      headers: { 'X-Master-Key': key }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const data = json.record;
+    if (Array.isArray(data.crs) && Array.isArray(data.logs)) {
+      saveCRs(data.crs); saveLogs(data.logs);
+      renderAll();
+      setSyncStatus('ok');
+      toast('\u2601 Data loaded from cloud (JSONBin) \u2713', 2500);
+    }
+  } catch(e) {
+    setSyncStatus('error');
+    console.warn('Auto-load from JSONBin failed:', e.message);
+  }
+}
+
+// Delete / reset cloud data
+async function deleteGistData() {
+  const token = localStorage.getItem('hpd_gist_token');
+  const gid   = localStorage.getItem('hpd_gist_id');
+  if (!token || !gid) { toast('\u26A0 No Gist configured.'); return; }
+  if (!confirm('Delete the cloud Gist? Local data stays intact. A new Gist will be created on the next push.')) return;
+  try {
+    const resp = await fetch('https://api.github.com/gists/' + gid, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token, 'X-GitHub-Api-Version': '2022-11-28' }
+    });
+    if (!resp.ok && resp.status !== 204) throw new Error('HTTP ' + resp.status);
+    localStorage.removeItem('hpd_gist_id');
+    document.getElementById('gistId').value = '';
+    setGistStatus('\u2713 Gist deleted. Next push will create a new one.');
+    toast('\u2713 Cloud Gist deleted.');
+  } catch(e) {
+    setGistStatus('\u26A0 Error: ' + e.message);
+    toast('\u26A0 Failed to delete Gist: ' + e.message);
+  }
+}
+
+async function clearJBData() {
+  const key   = localStorage.getItem('hpd_jb_key');
+  const binId = localStorage.getItem('hpd_jb_bin');
+  if (!key || !binId) { toast('\u26A0 No JSONBin configured.'); return; }
+  if (!confirm('Clear ALL data from JSONBin? Local data stays intact.')) return;
+  try {
+    const resp = await fetch('https://api.jsonbin.io/v3/b/' + binId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': key },
+      body: JSON.stringify({ crs: [], logs: [], savedAt: new Date().toISOString() })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    setJBStatus('\u2713 JSONBin data cleared.');
+    toast('\u2713 Cloud JSONBin data cleared.');
+  } catch(e) {
+    setJBStatus('\u26A0 Error: ' + e.message);
+    toast('\u26A0 Failed to clear JSONBin: ' + e.message);
+  }
+}
+
+// ════════════════════════════════════════════
 //  DATA LAYER  (localStorage + OneDrive sync)
 // ════════════════════════════════════════════
 const KEY_CR  = 'hpd_crs';
@@ -1052,9 +1615,9 @@ function getCRs()          { return getData(KEY_CR); }
 function getLogs()         { return getData(KEY_LOG); }
 function saveCRs(d)        { setData(KEY_CR, d); }
 function saveLogs(d)       { setData(KEY_LOG, d); }
-// persistX = write localStorage then push to OneDrive
-function persistCRs(d)    { saveCRs(d);  saveToOneDrive(); }
-function persistLogs(d)   { saveLogs(d); saveToOneDrive(); }
+// persistX = write localStorage + auto-sync to cloud
+function persistCRs(d)    { saveCRs(d);  saveToOneDrive(); autoSyncToCloud(); }
+function persistLogs(d)   { saveLogs(d); saveToOneDrive(); autoSyncToCloud(); }
 function genId(prefix)    { return prefix + Date.now() + Math.floor(Math.random()*1000); }
 
 function renderAll() {
@@ -1063,6 +1626,11 @@ function renderAll() {
   if (id === 'cr-list')    { renderCRTable(); }
   if (id === 'daily-log')  { populateLogCRDropdown(); renderLogHistory(); }
   if (id === 'management') { renderManagement(); }
+  if (id === 'fl-cr')      { renderModTable('fl-cr'); }
+  if (id === 'assign')     { renderModTable('assign'); }
+  if (id === 'ghcp')       { renderModTable('ghcp'); }
+  if (id === 'promo')      { renderModTable('promo'); }
+  if (id === 'mvno')       { renderModTable('mvno'); }
 }
 
 // ════════════════════════════════════════════
@@ -1089,6 +1657,11 @@ function showPage(id) {
   if (id === 'cr-list')     { renderCRTable(); }
   if (id === 'daily-log')   { populateLogCRDropdown(); renderLogHistory(); }
   if (id === 'management')  { renderManagement(); }
+  if (id === 'fl-cr')       { initModPage('fl-cr'); }
+  if (id === 'assign')      { initModPage('assign'); }
+  if (id === 'ghcp')        { initModPage('ghcp'); }
+  if (id === 'promo')       { initModPage('promo'); }
+  if (id === 'mvno')        { initModPage('mvno'); }
 }
 
 // ════════════════════════════════════════════
@@ -1101,17 +1674,37 @@ function toast(msg, dur = 2800) {
 }
 
 // ════════════════════════════════════════════
-//  STATUS / PRIORITY helpers
+//  STATUS helpers
 // ════════════════════════════════════════════
 const statusClass = {
-  'Open':'badge-open','In Progress':'badge-progress',
-  'On Hold':'badge-hold','Completed':'badge-done','Closed':'badge-closed','Pending':'badge-pending'
+  'Passed':       'badge-done',
+  'Pass':         'badge-done',
+  'Failed':       'badge-hold',
+  'Fail':         'badge-hold',
+  'In Progress':  'badge-progress',
+  'Not Started':  'badge-closed',
+  'Discontinued': 'badge-pending',
+  'N/A':          'badge-closed'
 };
-const priorityClass = { High:'badge-high', Medium:'badge-medium', Low:'badge-low' };
 
 function badge(text, map) {
-  const cls = map[text] || 'badge-open';
-  return `<span class="badge ${cls}">${text}</span>`;
+  const cls = (map && map[text]) || 'badge-open';
+  return `<span class="badge ${cls}">${esc(String(text||''))}</span>`;
+}
+
+function testEnvBadge(val) {
+  if (!val) return '<span style="color:var(--muted);font-size:.78rem">-</span>';
+  const cls = statusClass[val] || 'badge-open';
+  return `<span class="badge ${cls}">${esc(String(val))}</span>`;
+}
+
+function passPctBar(pct) {
+  const p = Math.min(100, Math.max(0, parseFloat(pct) || 0));
+  const color = p >= 75 ? 'var(--success)' : p >= 40 ? 'var(--warning)' : 'var(--danger)';
+  return `<div style="display:flex;align-items:center;gap:5px">
+    <div class="progress-wrap" style="width:60px"><div class="progress-bar" style="width:${p}%;background:${color}"></div></div>
+    <small>${p}%</small>
+  </div>`;
 }
 
 // ════════════════════════════════════════════
@@ -1120,37 +1713,45 @@ function badge(text, map) {
 function saveCR() {
   const id    = v('crId').trim();
   const title = v('crTitle').trim();
-  if (!id || !title) { toast('⚠ CR ID and Title are required.'); return; }
+  if (!id || !title) { toast('\u26A0 CR Number and CR Name are required.'); return; }
 
   const crs = getCRs();
-  if (crs.find(c => c.id === id)) { toast('⚠ A CR with this ID already exists.'); return; }
+  if (crs.find(c => c.id === id)) { toast('\u26A0 A CR with this number already exists.'); return; }
 
   crs.push({
     id, title,
-    type:       v('crType'),
-    priority:   v('crPriority'),
-    status:     v('crStatus'),
-    owner:      v('crOwner'),
-    start:      v('crStart'),
-    due:        v('crDue'),
-    progress:   parseInt(v('crProgress')) || 0,
-    requester:  v('crRequester'),
-    desc:       v('crDesc'),
-    notes:      v('crNotes'),
-    created:    new Date().toISOString()
+    srNo:        v('crSrNo'),
+    octaneNo:    v('crOctaneNo'),
+    itpmName:    v('crItpmName'),
+    testerName:  v('crTesterName'),
+    releaseDate: v('crReleaseDate'),
+    sprint:      v('crSprint'),
+    totalTC:     parseInt(v('crTotalTC'))   || 0,
+    t02TC:       parseInt(v('crT02TC'))     || 0,
+    t04TC:       parseInt(v('crT04TC'))     || 0,
+    passPct:     parseFloat(v('crPassPct')) || 0,
+    t02Status:   v('crT02Status'),
+    t04Status:   v('crT04Status'),
+    comments:    v('crComments'),
+    created:     new Date().toISOString()
   });
   persistCRs(crs);
   clearCRForm();
   renderCRTable();
-  toast(`✓ CR "${id}" saved successfully!`);
+  toast(`\u2713 CR "${id}" saved successfully!`);
 }
 
 function clearCRForm() {
-  ['crId','crTitle','crOwner','crStart','crDue','crRequester','crDesc','crNotes'].forEach(f => document.getElementById(f).value = '');
-  document.getElementById('crProgress').value = 0;
-  document.getElementById('crPriority').value = 'Medium';
-  document.getElementById('crStatus').value   = 'Open';
-  document.getElementById('crType').value     = 'Change Request';
+  ['crSrNo','crOctaneNo','crId','crTitle','crItpmName','crTesterName',
+   'crReleaseDate','crSprint','crComments'].forEach(f => {
+    const el = document.getElementById(f); if (el) el.value = '';
+  });
+  ['crTotalTC','crT02TC','crT04TC'].forEach(f => {
+    const el = document.getElementById(f); if (el) el.value = 0;
+  });
+  const pp = document.getElementById('crPassPct');    if (pp) pp.value = '';
+  const t2 = document.getElementById('crT02Status'); if (t2) t2.value = '';
+  const t4 = document.getElementById('crT04Status'); if (t4) t4.value = '';
 }
 
 function v(id) { return document.getElementById(id).value; }
@@ -1161,39 +1762,82 @@ function v(id) { return document.getElementById(id).value; }
 function renderCRTable() {
   const search = v('crSearch').toLowerCase();
   const st     = v('crFilterStatus');
-  const tp     = v('crFilterType');
+  const sp     = v('crFilterSprint');
   let rows = getCRs().filter(c =>
-    (!search || c.id.toLowerCase().includes(search) || c.title.toLowerCase().includes(search) || (c.owner||'').toLowerCase().includes(search)) &&
-    (!st || c.status === st) &&
-    (!tp || c.type === tp)
+    (!search || (c.id||'').toLowerCase().includes(search) ||
+                (c.title||'').toLowerCase().includes(search) ||
+                (c.testerName||'').toLowerCase().includes(search) ||
+                (c.itpmName||'').toLowerCase().includes(search)) &&
+    (!st || c.t02Status === st) &&
+    (!sp || c.sprint === sp)
   );
-  document.getElementById('crTableBody').innerHTML = rows.length ? rows.map(crRow).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">No records found.</td></tr>';
+  document.getElementById('crTableBody').innerHTML = rows.length
+    ? rows.map(crRow).join('')
+    : '<tr><td colspan="17" style="text-align:center;color:var(--muted);padding:24px">No records found.</td></tr>';
+  // reset select-all checkbox and bulk bar
+  const sa = document.getElementById('crSelectAll');
+  if (sa) sa.checked = false;
+  updateCRBulkBar();
 }
 
 function crRow(c) {
-  const prog = Math.min(100, Math.max(0, c.progress || 0));
-  return `<tr>
-    <td><strong>${esc(c.id)}</strong></td>
-    <td>${esc(c.title)}</td>
-    <td><small>${esc(c.type)}</small></td>
-    <td>${badge(c.priority, priorityClass)}</td>
-    <td>${badge(c.status, statusClass)}</td>
-    <td>${esc(c.owner||'—')}</td>
-    <td>
-      <div style="display:flex;align-items:center;gap:6px">
-        <div class="progress-wrap" style="width:70px">
-          <div class="progress-bar" style="width:${prog}%"></div>
-        </div>
-        <small>${prog}%</small>
-      </div>
-    </td>
-    <td>${c.due||'—'}</td>
+  const safeId = esc(c.id);
+  return `<tr data-id="${safeId}">
+    <td style="text-align:center"><input type="checkbox" class="cr-chk" value="${safeId}" onchange="updateCRBulkBar()"></td>
+    <td>${esc(c.srNo||'')}</td>
+    <td><small>${esc(c.octaneNo||'')}</small></td>
+    <td><strong>${safeId}</strong></td>
+    <td>${esc(c.title||'')}</td>
+    <td>${esc(c.itpmName||'')}</td>
+    <td>${esc(c.testerName||'')}</td>
+    <td><small>${esc(c.sprint||'')}</small></td>
+    <td>${c.releaseDate||'-'}</td>
+    <td style="text-align:center">${c.totalTC||0}</td>
+    <td style="text-align:center">${c.t02TC||0}</td>
+    <td style="text-align:center">${c.t04TC||0}</td>
+    <td>${passPctBar(c.passPct)}</td>
+    <td>${testEnvBadge(c.t02Status)}</td>
+    <td>${testEnvBadge(c.t04Status)}</td>
+    <td><small>${esc(c.comments||'')}</small></td>
     <td style="white-space:nowrap">
-      <button class="btn btn-outline btn-sm" onclick="viewCR('${esc(c.id)}')">&#128065;</button>
-      <button class="btn btn-warning btn-sm" onclick="openEdit('${esc(c.id)}')">&#9998;</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteCR('${esc(c.id)}')">&#128465;</button>
+      <button class="btn btn-outline btn-sm" onclick="viewCR('${safeId}')">&#128065;</button>
+      <button class="btn btn-warning btn-sm" onclick="openEdit('${safeId}')">&#9998;</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCR('${safeId}')">&#128465;</button>
     </td>
   </tr>`;
+}
+
+function toggleAllCRs(checked) {
+  document.querySelectorAll('.cr-chk').forEach(cb => cb.checked = checked);
+  updateCRBulkBar();
+}
+
+function updateCRBulkBar() {
+  const sel = document.querySelectorAll('.cr-chk:checked');
+  const bar = document.getElementById('crBulkBar');
+  const lbl = document.getElementById('crBulkCount');
+  if (bar)  bar.style.display  = sel.length ? 'flex' : 'none';
+  if (lbl)  lbl.textContent    = `${sel.length} row(s) selected`;
+  const sa = document.getElementById('crSelectAll');
+  const all = document.querySelectorAll('.cr-chk');
+  if (sa && all.length) sa.indeterminate = sel.length > 0 && sel.length < all.length;
+}
+
+function clearCRSelection() {
+  document.querySelectorAll('.cr-chk').forEach(cb => cb.checked = false);
+  const sa = document.getElementById('crSelectAll');
+  if (sa) { sa.checked = false; sa.indeterminate = false; }
+  updateCRBulkBar();
+}
+
+function bulkDeleteCRs() {
+  const ids = [...document.querySelectorAll('.cr-chk:checked')].map(cb => cb.value);
+  if (!ids.length) return;
+  if (!confirm(`Delete ${ids.length} selected CR(s)? This cannot be undone.`)) return;
+  persistCRs(getCRs().filter(c => !ids.includes(c.id)));
+  renderCRTable();
+  renderDashboard();
+  toast(`\u{1F5D1} ${ids.length} CR(s) deleted.`);
 }
 
 function esc(s) {
@@ -1219,13 +1863,21 @@ function openEdit(id) {
   const c = getCRs().find(x => x.id === id);
   if (!c) return;
   _editId = id;
-  ['Id','Title','Type','Priority','Status','Owner','Start','Due','Progress','Requester','Desc','Notes'].forEach(f => {
-    const el = document.getElementById('e'+f);
-    if (el) el.value = c[f.toLowerCase()] || '';
-  });
-  document.getElementById('eStart').value    = c.start    || '';
-  document.getElementById('eDue').value      = c.due      || '';
-  document.getElementById('eProgress').value = c.progress || 0;
+  document.getElementById('eSrNo').value       = c.srNo        || '';
+  document.getElementById('eOctaneNo').value   = c.octaneNo    || '';
+  document.getElementById('eId').value         = c.id          || '';
+  document.getElementById('eTitle').value      = c.title       || '';
+  document.getElementById('eItpmName').value   = c.itpmName    || '';
+  document.getElementById('eTesterName').value = c.testerName  || '';
+  document.getElementById('eReleaseDate').value= c.releaseDate || '';
+  document.getElementById('eSprint').value     = c.sprint      || '';
+  document.getElementById('eTotalTC').value    = c.totalTC     || 0;
+  document.getElementById('eT02TC').value      = c.t02TC       || 0;
+  document.getElementById('eT04TC').value      = c.t04TC       || 0;
+  document.getElementById('ePassPct').value    = c.passPct     || '';
+  document.getElementById('eT02Status').value  = c.t02Status   || '';
+  document.getElementById('eT04Status').value  = c.t04Status   || '';
+  document.getElementById('eComments').value   = c.comments    || '';
   document.getElementById('editModal').classList.add('open');
 }
 function closeModal() { document.getElementById('editModal').classList.remove('open'); _editId = null; }
@@ -1235,24 +1887,27 @@ function updateCR() {
   const idx = crs.findIndex(c => c.id === _editId);
   if (idx < 0) return;
   Object.assign(crs[idx], {
-    title:     v('eTitle'),
-    type:      v('eType'),
-    priority:  v('ePriority'),
-    status:    v('eStatus'),
-    owner:     v('eOwner'),
-    start:     v('eStart'),
-    due:       v('eDue'),
-    progress:  parseInt(v('eProgress')) || 0,
-    requester: v('eRequester'),
-    desc:      v('eDesc'),
-    notes:     v('eNotes'),
-    updated:   new Date().toISOString()
+    srNo:        v('eSrNo'),
+    octaneNo:    v('eOctaneNo'),
+    title:       v('eTitle'),
+    itpmName:    v('eItpmName'),
+    testerName:  v('eTesterName'),
+    releaseDate: v('eReleaseDate'),
+    sprint:      v('eSprint'),
+    totalTC:     parseInt(v('eTotalTC'))   || 0,
+    t02TC:       parseInt(v('eT02TC'))     || 0,
+    t04TC:       parseInt(v('eT04TC'))     || 0,
+    passPct:     parseFloat(v('ePassPct')) || 0,
+    t02Status:   v('eT02Status'),
+    t04Status:   v('eT04Status'),
+    comments:    v('eComments'),
+    updated:     new Date().toISOString()
   });
   persistCRs(crs);
   closeModal();
   renderCRTable();
   renderDashboard();
-  toast(`✓ CR "${_editId}" updated.`);
+  toast(`\u2713 CR "${_editId}" updated.`);
 }
 
 // ════════════════════════════════════════════
@@ -1263,25 +1918,22 @@ function viewCR(id) {
   if (!c) return;
   const logs = getLogs().filter(l => l.crId === id);
   document.getElementById('detailContent').innerHTML = `
-    <h2 style="margin-bottom:4px">${esc(c.id)} — ${esc(c.title)}</h2>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
-      ${badge(c.status, statusClass)} ${badge(c.priority, priorityClass)}
-      <span class="badge badge-open">${esc(c.type)}</span>
-    </div>
-    <table style="width:100%;font-size:.87rem;margin-bottom:16px">
-      <tr><td style="padding:5px 8px;color:var(--muted);width:130px">Owner</td><td>${esc(c.owner||'—')}</td></tr>
-      <tr><td style="padding:5px 8px;color:var(--muted)">Requested By</td><td>${esc(c.requester||'—')}</td></tr>
-      <tr><td style="padding:5px 8px;color:var(--muted)">Start Date</td><td>${c.start||'—'}</td></tr>
-      <tr><td style="padding:5px 8px;color:var(--muted)">Due Date</td><td>${c.due||'—'}</td></tr>
-      <tr><td style="padding:5px 8px;color:var(--muted)">Progress</td><td>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="progress-wrap" style="width:120px"><div class="progress-bar" style="width:${c.progress||0}%"></div></div>
-          <strong>${c.progress||0}%</strong>
-        </div>
-      </td></tr>
+    <h2 style="margin-bottom:4px">${esc(c.id)} &mdash; ${esc(c.title)}</h2>
+    <table style="width:100%;font-size:.87rem;margin-bottom:16px;border-collapse:collapse">
+      <tr><td style="padding:5px 8px;color:var(--muted);width:160px">Sr. No</td><td>${esc(c.srNo||'-')}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">Octane Tracker No</td><td>${esc(c.octaneNo||'-')}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">ITPM Name</td><td>${esc(c.itpmName||'-')}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">Tester Name</td><td>${esc(c.testerName||'-')}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">Sprint</td><td>${esc(c.sprint||'-')}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">Release Milestone Date</td><td>${esc(c.releaseDate||'-')}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">Total Test Cases</td><td>${c.totalTC||0}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">T02 Test Cases</td><td>${c.t02TC||0}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">T04 Test Cases</td><td>${c.t04TC||0}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">Pass %</td><td>${passPctBar(c.passPct)}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">T02 CR Status</td><td>${testEnvBadge(c.t02Status)}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">T04 CR Status</td><td>${testEnvBadge(c.t04Status)}</td></tr>
+      <tr><td style="padding:5px 8px;color:var(--muted)">Comments</td><td>${esc(c.comments||'-')}</td></tr>
     </table>
-    ${c.desc ? `<p style="font-size:.88rem;margin-bottom:10px"><strong>Description:</strong> ${esc(c.desc)}</p>` : ''}
-    ${c.notes ? `<p style="font-size:.88rem;margin-bottom:14px"><strong>Notes:</strong> ${esc(c.notes)}</p>` : ''}
     <h3 style="font-size:.9rem;color:var(--primary);margin-bottom:10px">&#128467; Related Daily Logs (${logs.length})</h3>
     ${logs.length ? `<ul class="timeline">${logs.slice(-5).reverse().map(l => `
       <li><div class="tl-dot">&#128467;</div>
@@ -1318,9 +1970,19 @@ document.addEventListener('DOMContentLoaded', () => {
   initMsal();
   renderDashboard();
   populateLogCRDropdown();
-  const hasCloud = localStorage.getItem('hpd_gist_token') || localStorage.getItem('hpd_jb_key');
-  if (!hasCloud)
-    setTimeout(() => toast('\u2601 Tip: Use \u201cCloud Sync\u201d button to enable GitHub Gist or JSONBin sync.', 5000), 1200);
+
+  // Auto-load from cloud on every page open — ensures data survives tab close / different devices
+  const gistToken = localStorage.getItem('hpd_gist_token');
+  const gistId    = localStorage.getItem('hpd_gist_id');
+  const jbKey     = localStorage.getItem('hpd_jb_key');
+  const jbBin     = localStorage.getItem('hpd_jb_bin');
+  if (gistToken && gistId) {
+    autoLoadFromGist();
+  } else if (jbKey && jbBin) {
+    autoLoadFromJB();
+  } else {
+    setTimeout(() => toast('\u2601 Tip: Click \u201cCloud Sync\u201d in the header to enable auto-save — data will never be lost.', 6000), 1200);
+  }
 });
 
 function saveLog() {
@@ -1406,31 +2068,41 @@ function deleteLog(id) {
 // ════════════════════════════════════════════
 //  DASHBOARD
 // ════════════════════════════════════════════
+function populateSprintDropdowns() {
+  const sprints = [...new Set(getCRs().map(c => c.sprint).filter(Boolean))].sort();
+  ['dbSprint','crFilterSprint'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">All Sprints</option>` +
+      sprints.map(s => `<option value="${esc(s)}" ${cur===s?'selected':''}>${esc(s)}</option>`).join('');
+  });
+}
+
 function renderDashboard() {
   const crs  = getCRs();
   const logs = getLogs();
   const today = new Date().toISOString().split('T')[0];
 
-  // KPIs
-  const total     = crs.length;
-  const open      = crs.filter(c => c.status === 'Open').length;
-  const inprog    = crs.filter(c => c.status === 'In Progress').length;
-  const completed = crs.filter(c => c.status === 'Completed' || c.status === 'Closed').length;
-  const high      = crs.filter(c => c.priority === 'High' && c.status !== 'Completed' && c.status !== 'Closed').length;
-  const todayLogs = logs.filter(l => l.date === today).length;
+  const total      = crs.length;
+  const t02Passed  = crs.filter(c => c.t02Status === 'Passed' || c.t02Status === 'Pass').length;
+  const t02Failed  = crs.filter(c => c.t02Status === 'Failed' || c.t02Status === 'Fail').length;
+  const t02Inprog  = crs.filter(c => c.t02Status === 'In Progress').length;
+  const t04Passed  = crs.filter(c => c.t04Status === 'Passed' || c.t04Status === 'Pass').length;
+  const todayLogs  = logs.filter(l => l.date === today).length;
 
   document.getElementById('kpiGrid').innerHTML = `
-    <div class="kpi"><div class="num">${total}</div><div class="lbl">Total CRs / Projects</div></div>
-    <div class="kpi orange"><div class="num">${open}</div><div class="lbl">Open</div></div>
-    <div class="kpi orange"><div class="num">${inprog}</div><div class="lbl">In Progress</div></div>
-    <div class="kpi green"><div class="num">${completed}</div><div class="lbl">Completed / Closed</div></div>
-    <div class="kpi red"><div class="num">${high}</div><div class="lbl">High Priority Active</div></div>
+    <div class="kpi"><div class="num">${total}</div><div class="lbl">Total CRs</div></div>
+    <div class="kpi green"><div class="num">${t02Passed}</div><div class="lbl">T02 Passed</div></div>
+    <div class="kpi red"><div class="num">${t02Failed}</div><div class="lbl">T02 Failed</div></div>
+    <div class="kpi orange"><div class="num">${t02Inprog}</div><div class="lbl">T02 In Progress</div></div>
+    <div class="kpi green"><div class="num">${t04Passed}</div><div class="lbl">T04 Passed</div></div>
     <div class="kpi"><div class="num">${todayLogs}</div><div class="lbl">Today's Log Entries</div></div>
   `;
 
+  populateSprintDropdowns();
   renderDashboardTable();
 
-  // Recent logs (last 5)
   const recent = [...logs].reverse().slice(0, 5);
   document.getElementById('recentLogs').innerHTML = recent.length
     ? recent.map(l => `<li>
@@ -1446,92 +2118,114 @@ function renderDashboard() {
 function renderDashboardTable() {
   const search = v('dbSearch').toLowerCase();
   const st     = v('dbStatus');
-  const pr     = v('dbPriority');
+  const sp     = v('dbSprint');
   let crs = getCRs().filter(c =>
-    c.status !== 'Closed' &&
-    (!search || c.id.toLowerCase().includes(search) || c.title.toLowerCase().includes(search)) &&
-    (!st || c.status === st) &&
-    (!pr || c.priority === pr)
+    (!search || (c.id||'').toLowerCase().includes(search) || (c.title||'').toLowerCase().includes(search)) &&
+    (!st || c.t02Status === st) &&
+    (!sp || c.sprint === sp)
   );
   const body = document.getElementById('dbTableBody');
-  body.innerHTML = crs.length ? crs.map(crRow).join('') : '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">No active records.</td></tr>';
+  body.innerHTML = crs.length
+    ? crs.map(dbRow).join('')
+    : '<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:24px">No active records.</td></tr>';
+}
+
+// Dashboard row — same as crRow but no checkbox column
+function dbRow(c) {
+  const safeId = esc(c.id);
+  return `<tr>
+    <td>${esc(c.srNo||'')}</td>
+    <td><small>${esc(c.octaneNo||'')}</small></td>
+    <td><strong>${safeId}</strong></td>
+    <td>${esc(c.title||'')}</td>
+    <td>${esc(c.itpmName||'')}</td>
+    <td>${esc(c.testerName||'')}</td>
+    <td><small>${esc(c.sprint||'')}</small></td>
+    <td>${c.releaseDate||'-'}</td>
+    <td style="text-align:center">${c.totalTC||0}</td>
+    <td style="text-align:center">${c.t02TC||0}</td>
+    <td style="text-align:center">${c.t04TC||0}</td>
+    <td>${passPctBar(c.passPct)}</td>
+    <td>${testEnvBadge(c.t02Status)}</td>
+    <td>${testEnvBadge(c.t04Status)}</td>
+    <td><small>${esc(c.comments||'')}</small></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" onclick="viewCR('${safeId}')">&#128065;</button>
+      <button class="btn btn-warning btn-sm" onclick="openEdit('${safeId}')">&#9998;</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCR('${safeId}')">&#128465;</button>
+    </td>
+  </tr>`;
 }
 
 // ════════════════════════════════════════════
 //  MANAGEMENT VIEW
 // ════════════════════════════════════════════
 function renderManagement() {
-  const crs = getCRs();
+  const crs  = getCRs();
   const logs = getLogs();
 
-  // Status summary
-  const statuses = ['Open','In Progress','On Hold','Completed','Closed'];
-  document.getElementById('statusSummary').innerHTML = statuses.map(s => {
-    const n = crs.filter(c => c.status === s).length;
-    const pct = crs.length ? Math.round(n/crs.length*100) : 0;
+  // T02 Status summary
+  const t02Statuses = ['Passed','Failed','In Progress','Not Started','Discontinued','N/A'];
+  document.getElementById('statusSummary').innerHTML = t02Statuses.map(s => {
+    const n   = crs.filter(c => c.t02Status === s).length;
+    const pct = crs.length ? Math.round(n / crs.length * 100) : 0;
     return `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px">
-        ${badge(s, statusClass)} <strong>${n}</strong>
+        <span>T02: ${testEnvBadge(s)}</span> <strong>${n}</strong>
       </div>
-      <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${s==='Completed'||s==='Closed'?'var(--success)':s==='In Progress'?'var(--warning)':s==='On Hold'?'var(--danger)':'var(--accent)'}"></div></div>
+      <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${s==='Passed'?'var(--success)':s==='Failed'?'var(--danger)':s==='In Progress'?'var(--warning)':'var(--accent)'}"></div></div>
     </div>`;
   }).join('');
 
-  // Priority
-  ['High','Medium','Low'].forEach(p => {
-    const cls = ['High','Medium','Low'];
-  });
-  document.getElementById('prioritySummary').innerHTML = ['High','Medium','Low'].map(p => {
-    const n = crs.filter(c => c.priority === p && c.status !== 'Completed' && c.status !== 'Closed').length;
-    const pct = crs.length ? Math.round(n/crs.length*100) : 0;
+  // T04 Status summary
+  document.getElementById('prioritySummary').innerHTML = t02Statuses.map(s => {
+    const n   = crs.filter(c => c.t04Status === s).length;
+    const pct = crs.length ? Math.round(n / crs.length * 100) : 0;
     return `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px">
-        ${badge(p, priorityClass)} <strong>${n} active</strong>
+        <span>T04: ${testEnvBadge(s)}</span> <strong>${n} CRs</strong>
       </div>
-      <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${p==='High'?'var(--danger)':p==='Medium'?'var(--warning)':'var(--success)'}"></div></div>
+      <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${s==='Passed'?'var(--success)':s==='Failed'?'var(--danger)':s==='In Progress'?'var(--warning)':'var(--accent)'}"></div></div>
     </div>`;
   }).join('');
 
-  // Overdue / high priority
-  const today = new Date();
-  const overdueRows = crs.filter(c =>
-    c.status !== 'Completed' && c.status !== 'Closed' &&
-    (c.priority === 'High' || (c.due && new Date(c.due) < today))
-  ).map(c => {
-    const daysOver = c.due ? Math.max(0, Math.floor((today - new Date(c.due)) / 86400000)) : 0;
-    const overText = c.due && new Date(c.due) < today ? `<span style="color:var(--danger);font-weight:700">${daysOver}d</span>` : '—';
-    return `<tr>
-      <td><strong>${esc(c.id)}</strong></td>
-      <td>${esc(c.title)}</td>
-      <td>${badge(c.priority, priorityClass)}</td>
-      <td>${badge(c.status, statusClass)}</td>
-      <td>${esc(c.owner||'—')}</td>
-      <td>${c.due||'—'}</td>
-      <td>${overText}</td>
-    </tr>`;
-  });
-  document.getElementById('overdueTable').innerHTML = overdueRows.length
-    ? overdueRows.join('')
-    : '<tr><td colspan="7" style="text-align:center;color:var(--success);padding:18px">✓ No overdue high-priority items.</td></tr>';
+  // Failed / At Risk CRs
+  const failedRows = crs.filter(c =>
+    c.t02Status === 'Failed' || c.t02Status === 'Fail' ||
+    c.t04Status === 'Failed' || c.t04Status === 'Fail'
+  ).map(c => `<tr>
+    <td><strong>${esc(c.id)}</strong></td>
+    <td>${esc(c.title)}</td>
+    <td>${esc(c.itpmName||'-')}</td>
+    <td>${esc(c.testerName||'-')}</td>
+    <td>${esc(c.sprint||'-')}</td>
+    <td>${testEnvBadge(c.t02Status)}</td>
+    <td>${testEnvBadge(c.t04Status)}</td>
+    <td>${passPctBar(c.passPct)}</td>
+    <td><small>${esc(c.comments||'-')}</small></td>
+  </tr>`);
+  document.getElementById('overdueTable').innerHTML = failedRows.length
+    ? failedRows.join('')
+    : '<tr><td colspan="9" style="text-align:center;color:var(--success);padding:18px">\u2713 No failed CRs.</td></tr>';
 
-  // Progress overview
-  const active = crs.filter(c => c.status !== 'Closed');
-  document.getElementById('progressOverview').innerHTML = active.length
-    ? active.map(c => {
-        const p = c.progress || 0;
+  // Pass % overview per CR
+  const allCrs = crs.filter(c => c.id);
+  document.getElementById('progressOverview').innerHTML = allCrs.length
+    ? allCrs.map(c => {
+        const p = parseFloat(c.passPct) || 0;
         return `<div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="min-width:130px;font-size:.83rem;font-weight:600">${esc(c.id)}</span>
+          <span style="min-width:100px;font-size:.83rem;font-weight:600">${esc(c.id)}</span>
           <div class="progress-wrap" style="flex:1;min-width:120px">
             <div class="progress-bar" style="width:${p}%;background:${p>=75?'var(--success)':p>=40?'var(--warning)':'var(--accent)'}"></div>
           </div>
-          <span style="width:38px;text-align:right;font-size:.83rem;font-weight:700">${p}%</span>
-          ${badge(c.status, statusClass)}
+          <span style="width:45px;text-align:right;font-size:.83rem;font-weight:700">${p}%</span>
+          ${testEnvBadge(c.t02Status)}
         </div>`;
       }).join('')
-    : '<p style="color:var(--muted);font-size:.88rem">No active CRs.</p>';
+    : '<p style="color:var(--muted);font-size:.88rem">No CRs yet.</p>';
 
   // This week logs
-  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgo  = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
   const weekLogs = [...logs].reverse().filter(l => new Date(l.date) >= weekAgo);
   document.getElementById('weekLogs').innerHTML = weekLogs.length
     ? weekLogs.map(l => `<li>
@@ -1550,8 +2244,9 @@ function renderManagement() {
 function exportCSV() {
   const crs = getCRs();
   if (!crs.length) { toast('No records to export.'); return; }
-  const cols = ['id','title','type','priority','status','owner','requester','start','due','progress','desc','notes','created'];
-  const rows = [cols.join(','), ...crs.map(c =>
+  const cols = ['srNo','octaneNo','id','title','itpmName','testerName','releaseDate','sprint','totalTC','t02TC','t04TC','passPct','t02Status','t04Status','comments','created'];
+  const headers = ['Sr. No','Octane Tracker No','CR Number','CR Name','ITPM Name','Tester Name','Release Milestone Date','Sprint','Total Test Cases','T02 Test Cases','T04 Test Cases','Pass %','T02 CR Status','T04 CR Status','Comments','Created'];
+  const rows = [headers.join(','), ...crs.map(c =>
     cols.map(col => `"${String(c[col]||'').replace(/"/g,'""').replace(/\n/g,' ')}"`).join(',')
   )];
   const blob = new Blob([rows.join('\r\n')], {type: 'text/csv'});
@@ -1559,7 +2254,443 @@ function exportCSV() {
   a.href = URL.createObjectURL(blob);
   a.download = `HPD_CRs_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
-  toast('✓ CSV exported!');
+  toast('\u2713 CSV exported!');
+}
+
+// ════════════════════════════════════════════
+//  MODULE CONFIGS (FL CR, Assignment, GHCP, Promo, MVNO)
+// ════════════════════════════════════════════
+const MOD_CFG = {};
+
+MOD_CFG['fl-cr'] = {
+  key: 'hpd_fl_crs', title: 'FL CR Tracker', icon: '&#128203;',
+  excelSheet: 'FL CR Tracker',
+  pkField: 'id', pkLabel: 'CR Number',
+  searchFields: ['id','title','testerName','itpmName'],
+  statusField: 'crStatus',
+  fields: [
+    {k:'srNo',       label:'Sr. No',                type:'number'},
+    {k:'id',         label:'CR Number',             type:'text', required:true},
+    {k:'title',      label:'CR Name',               type:'text', required:true},
+    {k:'itpmName',   label:'ITPM Name',             type:'text'},
+    {k:'testerName', label:'Tester Name',           type:'text'},
+    {k:'releaseDate',label:'Release Milestone Date', type:'date'},
+    {k:'sprint',     label:'Sprint',                type:'text'},
+    {k:'totalTC',    label:'Total Test Cases',      type:'number', min:0},
+    {k:'t02TC',      label:'T02 Test Cases',        type:'number', min:0},
+    {k:'t04TC',      label:'T04 Test Cases',        type:'number', min:0},
+    {k:'passPct',    label:'Pass %',                type:'number', min:0, max:100},
+    {k:'crStatus',   label:'CR Status',             type:'select',
+     opts:['Not Started','In Progress','Passed','Failed','Discontinued','N/A']},
+    {k:'comments',   label:'Comments',              type:'textarea', full:true},
+  ],
+  thCols: ['Sr.No','CR Number','CR Name','ITPM Name','Tester','Sprint','Release Date','Total TCs','T02 TCs','T04 TCs','Pass %','CR Status','Comments','Actions'],
+  rowFn: r => `<tr>
+    <td>${esc(r.srNo||'')}</td>
+    <td><strong>${esc(r.id)}</strong></td>
+    <td>${esc(r.title||'')}</td>
+    <td>${esc(r.itpmName||'')}</td>
+    <td>${esc(r.testerName||'')}</td>
+    <td><small>${esc(r.sprint||'')}</small></td>
+    <td>${r.releaseDate||'-'}</td>
+    <td style="text-align:center">${r.totalTC||0}</td>
+    <td style="text-align:center">${r.t02TC||0}</td>
+    <td style="text-align:center">${r.t04TC||0}</td>
+    <td>${passPctBar(r.passPct)}</td>
+    <td>${testEnvBadge(r.crStatus)}</td>
+    <td><small>${esc(r.comments||'')}</small></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" onclick="viewModRecord('fl-cr','${esc(r.id)}')">&#128065;</button>
+      <button class="btn btn-warning btn-sm" onclick="openModEdit('fl-cr','${esc(r.id)}')">&#9998;</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteMod('fl-cr','${esc(r.id)}')">&#128465;</button>
+    </td></tr>`,
+};
+
+MOD_CFG['assign'] = {
+  key: 'hpd_cr_assign', title: 'CR Assignment Feasibility', icon: '&#128101;',
+  excelSheet: 'CR assgnment fesibility',
+  pkField: 'id', pkLabel: 'ID',
+  searchFields: ['id','name','itpm','milestone'],
+  statusField: null,
+  fields: [
+    {k:'id',         label:'ID',                   type:'text', required:true},
+    {k:'milestone',  label:'Milestone',            type:'text'},
+    {k:'appModules', label:'Application Modules',  type:'text'},
+    {k:'itpm',       label:'IT PM',                type:'text'},
+    {k:'projectId',  label:'Project ID',           type:'text'},
+    {k:'name',       label:'Name',                 type:'text'},
+    {k:'tcName',     label:'TC Name',              type:'text'},
+  ],
+  thCols: ['ID','Milestone','Application Modules','IT PM','Project ID','Name','TC Name','Actions'],
+  rowFn: r => `<tr>
+    <td><strong>${esc(r.id)}</strong></td>
+    <td>${esc(r.milestone||'')}</td>
+    <td>${esc(r.appModules||'')}</td>
+    <td>${esc(r.itpm||'')}</td>
+    <td>${esc(r.projectId||'')}</td>
+    <td>${esc(r.name||'')}</td>
+    <td>${esc(r.tcName||'')}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" onclick="viewModRecord('assign','${esc(r.id)}')">&#128065;</button>
+      <button class="btn btn-warning btn-sm" onclick="openModEdit('assign','${esc(r.id)}')">&#9998;</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteMod('assign','${esc(r.id)}')">&#128465;</button>
+    </td></tr>`,
+};
+
+MOD_CFG['ghcp'] = {
+  key: 'hpd_ghcp', title: 'GHCP TC Tracker', icon: '&#129302;',
+  excelSheet: 'GHCP TC Tracker',
+  pkField: 'id', pkLabel: 'CR Number',
+  searchFields: ['id','description','tester','release'],
+  statusField: null,
+  fields: [
+    {k:'id',           label:'CR Number',                        type:'text', required:true},
+    {k:'description',  label:'CR Description',                   type:'text'},
+    {k:'tester',       label:'Tester',                           type:'text'},
+    {k:'release',      label:'Release',                          type:'text'},
+    {k:'totalTC',      label:'Total Test Cases',                 type:'number', min:0},
+    {k:'copilotTC',    label:'Copilot TC Generated',             type:'number', min:0},
+    {k:'manualTC',     label:'Manually Written / Modified TCs',  type:'number', min:0},
+    {k:'accuracy',     label:'% Accuracy',                       type:'number', min:0, max:100},
+    {k:'manualEffort', label:'Manual Effort (hrs)',              type:'number', min:0},
+    {k:'timeSaved',    label:'Time Saved (hrs)',                 type:'number', min:0},
+    {k:'defects',      label:'Defects via Copilot TCs',         type:'number', min:0},
+    {k:'pctDDR',       label:'% Copilot DDR',                   type:'number', min:0, max:100},
+  ],
+  thCols: ['CR Number','Description','Tester','Release','Total TCs','Copilot TCs','Manual TCs','% Accuracy','Manual Effort (hrs)','Time Saved (hrs)','Defects','% DDR','Actions'],
+  rowFn: r => `<tr>
+    <td><strong>${esc(r.id)}</strong></td>
+    <td><small>${esc(r.description||'')}</small></td>
+    <td>${esc(r.tester||'')}</td>
+    <td>${esc(r.release||'')}</td>
+    <td style="text-align:center">${r.totalTC||0}</td>
+    <td style="text-align:center">${r.copilotTC||0}</td>
+    <td style="text-align:center">${r.manualTC||0}</td>
+    <td>${passPctBar(r.accuracy)}</td>
+    <td style="text-align:center">${r.manualEffort||0}</td>
+    <td style="text-align:center;color:var(--success);font-weight:600">${r.timeSaved||0}</td>
+    <td style="text-align:center">${r.defects||0}</td>
+    <td>${passPctBar(r.pctDDR)}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" onclick="viewModRecord('ghcp','${esc(r.id)}')">&#128065;</button>
+      <button class="btn btn-warning btn-sm" onclick="openModEdit('ghcp','${esc(r.id)}')">&#9998;</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteMod('ghcp','${esc(r.id)}')">&#128465;</button>
+    </td></tr>`,
+};
+
+MOD_CFG['promo'] = {
+  key: 'hpd_promo', title: 'Promo Tracker', icon: '&#127920;',
+  excelSheet: 'Promo',
+  pkField: 'id', pkLabel: 'Promotion ID',
+  searchFields: ['id','name','testCoordinator'],
+  statusField: null,
+  fields: [
+    {k:'id',              label:'Promotion ID',       type:'text', required:true},
+    {k:'name',            label:'Promotion Name',     type:'text', required:true},
+    {k:'testCoordinator', label:'Test Coordinator',   type:'text'},
+    {k:'testEnv',         label:'Test Env',           type:'text'},
+    {k:'timelineT1',      label:'Timeline for T1',    type:'date'},
+    {k:'plannedGoLive',   label:'Planned Go Live',    type:'date'},
+    {k:'actualGoLive',    label:'Actual Go Live',     type:'date'},
+    {k:'notes',           label:'Notes / Comments',   type:'textarea', full:true},
+  ],
+  thCols: ['Promotion ID','Promotion Name','Test Coordinator','Test Env','Timeline T1','Planned Go Live','Actual Go Live','Notes','Actions'],
+  rowFn: r => `<tr>
+    <td><strong>${esc(r.id)}</strong></td>
+    <td>${esc(r.name||'')}</td>
+    <td>${esc(r.testCoordinator||'')}</td>
+    <td>${esc(r.testEnv||'')}</td>
+    <td>${r.timelineT1||'-'}</td>
+    <td>${r.plannedGoLive||'-'}</td>
+    <td>${r.actualGoLive||'-'}</td>
+    <td><small>${esc(r.notes||'')}</small></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" onclick="viewModRecord('promo','${esc(r.id)}')">&#128065;</button>
+      <button class="btn btn-warning btn-sm" onclick="openModEdit('promo','${esc(r.id)}')">&#9998;</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteMod('promo','${esc(r.id)}')">&#128465;</button>
+    </td></tr>`,
+};
+
+MOD_CFG['mvno'] = {
+  key: 'hpd_mvno', title: 'MVNO Tracker', icon: '&#128225;',
+  excelSheet: 'MVNO Tracker',
+  pkField: 'id', pkLabel: 'CR Number',
+  searchFields: ['id','title','testerName','itpmName'],
+  statusField: 'status',
+  fields: [
+    {k:'srNo',       label:'Sr. No',                  type:'number'},
+    {k:'id',         label:'CR Number',               type:'text', required:true},
+    {k:'title',      label:'CR Name',                 type:'text', required:true},
+    {k:'itpmName',   label:'ITPM Name',               type:'text'},
+    {k:'testerName', label:'Tester Name',             type:'text'},
+    {k:'releaseDate',label:'Release Milestone Date',   type:'date'},
+    {k:'sprint',     label:'Sprint',                   type:'text'},
+    {k:'t02TC',      label:'T02 Test Cases',           type:'number', min:0},
+    {k:'t03TC',      label:'T03 Test Cases',           type:'number', min:0},
+    {k:'t04TC',      label:'T04 Test Cases',           type:'number', min:0},
+    {k:'t02Start',   label:'T02 Test Start Date',      type:'date'},
+    {k:'t03Start',   label:'T03 Test Start Date',      type:'date'},
+    {k:'t04Start',   label:'T04 Test Start Date',      type:'date'},
+    {k:'passPct',    label:'Pass %',                   type:'number', min:0, max:100},
+    {k:'status',     label:'CR Status',               type:'select',
+     opts:['Not Started','In Testing','Passed','Failed','Discontinued']},
+    {k:'comments',   label:'Comments',                type:'textarea', full:true},
+  ],
+  thCols: ['Sr.No','CR Number','CR Name','ITPM Name','Tester','Sprint','Release Date','T02 TCs','T03 TCs','T04 TCs','T02 Start','T03 Start','T04 Start','Pass %','Status','Comments','Actions'],
+  rowFn: r => `<tr>
+    <td>${esc(r.srNo||'')}</td>
+    <td><strong>${esc(r.id)}</strong></td>
+    <td>${esc(r.title||'')}</td>
+    <td>${esc(r.itpmName||'')}</td>
+    <td>${esc(r.testerName||'')}</td>
+    <td><small>${esc(r.sprint||'')}</small></td>
+    <td>${r.releaseDate||'-'}</td>
+    <td style="text-align:center">${r.t02TC||0}</td>
+    <td style="text-align:center">${r.t03TC||0}</td>
+    <td style="text-align:center">${r.t04TC||0}</td>
+    <td>${r.t02Start||'-'}</td>
+    <td>${r.t03Start||'-'}</td>
+    <td>${r.t04Start||'-'}</td>
+    <td>${passPctBar(r.passPct)}</td>
+    <td>${testEnvBadge(r.status)}</td>
+    <td><small>${esc(r.comments||'')}</small></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-outline btn-sm" onclick="viewModRecord('mvno','${esc(r.id)}')">&#128065;</button>
+      <button class="btn btn-warning btn-sm" onclick="openModEdit('mvno','${esc(r.id)}')">&#9998;</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteMod('mvno','${esc(r.id)}')">&#128465;</button>
+    </td></tr>`,
+};
+
+// ════════════════════════════════════════════
+//  GENERIC MODULE CRUD
+// ════════════════════════════════════════════
+function modGet(cfg)        { try { return JSON.parse(localStorage.getItem(cfg.key)||'[]'); } catch{ return []; } }
+function modSave(cfg, data) { localStorage.setItem(cfg.key, JSON.stringify(data)); autoSyncToCloud(); }
+
+function initModPage(modKey) {
+  const cfg = MOD_CFG[modKey];
+  if (!cfg) return;
+  const thead = document.getElementById(modKey+'-thead');
+  if (thead) thead.innerHTML = '<tr>' + cfg.thCols.map(h => `<th>${h}</th>`).join('') + '</tr>';
+  renderModTable(modKey);
+}
+
+function renderModTable(modKey) {
+  const cfg    = MOD_CFG[modKey];
+  const search = (document.getElementById(modKey+'-search')?.value||'').toLowerCase();
+  const st     = document.getElementById(modKey+'-status')?.value||'';
+  const rows   = modGet(cfg).filter(r =>
+    (!search || cfg.searchFields.some(f => (r[f]||'').toLowerCase().includes(search))) &&
+    (!st || !cfg.statusField || r[cfg.statusField] === st)
+  );
+  const tbody = document.getElementById(modKey+'-tbody');
+  if (tbody) tbody.innerHTML = rows.length
+    ? rows.map(r => cfg.rowFn(r)).join('')
+    : `<tr><td colspan="${cfg.thCols.length}" style="text-align:center;color:var(--muted);padding:24px">No records found.</td></tr>`;
+}
+
+function buildModField(prefix, f) {
+  const id = prefix + f.k;
+  let input;
+  if (f.type === 'textarea') {
+    input = `<textarea id="${id}" rows="2" placeholder="${f.label}"></textarea>`;
+  } else if (f.type === 'select') {
+    input = `<select id="${id}"><option value="">-- Select --</option>${(f.opts||[]).map(o=>`<option>${esc(o)}</option>`).join('')}</select>`;
+  } else {
+    const extras = (f.min !== undefined ? ` min="${f.min}"` : '') + (f.max !== undefined ? ` max="${f.max}"` : '');
+    input = `<input type="${f.type||'text'}" id="${id}" placeholder="${f.label}"${extras}>`;
+  }
+  return `<div class="form-group${f.full?' full':''}">`
+       + `<label>${f.label}${f.required?' *':''}</label>${input}</div>`;
+}
+
+function showModAddForm(modKey) {
+  const cfg    = MOD_CFG[modKey];
+  const wrap   = document.getElementById(modKey+'-addform');
+  const fields = document.getElementById(modKey+'-formfields');
+  if (!wrap || !fields) return;
+  fields.innerHTML = cfg.fields.map(f => buildModField(modKey+'-f-', f)).join('');
+  wrap.style.display = '';
+}
+
+function hideModAddForm(modKey) {
+  const wrap = document.getElementById(modKey+'-addform');
+  if (wrap) wrap.style.display = 'none';
+}
+
+function saveModRecord(modKey) {
+  const cfg = MOD_CFG[modKey];
+  const rec = {};
+  cfg.fields.forEach(f => {
+    const el = document.getElementById(modKey+'-f-'+f.k);
+    if (!el) return;
+    rec[f.k] = (f.type === 'number') ? (parseFloat(el.value) || 0) : el.value.trim();
+  });
+  if (!rec[cfg.pkField]) { toast(`\u26A0 ${cfg.pkLabel} is required.`); return; }
+  const data = modGet(cfg);
+  if (data.find(r => r[cfg.pkField] === rec[cfg.pkField])) {
+    toast(`\u26A0 A record with this ${cfg.pkLabel} already exists.`); return;
+  }
+  data.push({ ...rec, created: new Date().toISOString() });
+  modSave(cfg, data);
+  hideModAddForm(modKey);
+  renderModTable(modKey);
+  toast(`\u2713 Record "${rec[cfg.pkField]}" saved!`);
+}
+
+function deleteMod(modKey, id) {
+  if (!confirm(`Delete "${id}"? This cannot be undone.`)) return;
+  const cfg = MOD_CFG[modKey];
+  modSave(cfg, modGet(cfg).filter(r => r[cfg.pkField] !== id));
+  renderModTable(modKey);
+  toast('\u{1F5D1} Record deleted.');
+}
+
+// ─── Generic Edit Modal ────────────────────────────
+let _modEditKey = null, _modEditId = null;
+
+function openModEdit(modKey, id) {
+  const cfg = MOD_CFG[modKey];
+  const rec = modGet(cfg).find(r => r[cfg.pkField] === id);
+  if (!rec) return;
+  _modEditKey = modKey;
+  _modEditId  = id;
+  document.getElementById('modEditTitle').innerHTML = '\u270E Edit ' + cfg.icon + ' ' + cfg.title;
+  const fields = document.getElementById('modEditFields');
+  fields.innerHTML = cfg.fields.map(f => buildModField('me-', f)).join('');
+  cfg.fields.forEach(f => {
+    const el = document.getElementById('me-'+f.k);
+    if (el) el.value = (rec[f.k] != null ? rec[f.k] : '');
+  });
+  const pkEl = document.getElementById('me-'+cfg.pkField);
+  if (pkEl) pkEl.disabled = true;
+  document.getElementById('modEditModal').classList.add('open');
+}
+
+function closeModEdit() {
+  document.getElementById('modEditModal').classList.remove('open');
+  _modEditKey = _modEditId = null;
+}
+
+function updateMod() {
+  if (!_modEditKey || !_modEditId) return;
+  const cfg  = MOD_CFG[_modEditKey];
+  const data = modGet(cfg);
+  const idx  = data.findIndex(r => r[cfg.pkField] === _modEditId);
+  if (idx < 0) return;
+  cfg.fields.forEach(f => {
+    if (f.k === cfg.pkField) return;
+    const el = document.getElementById('me-'+f.k);
+    if (!el) return;
+    data[idx][f.k] = (f.type === 'number') ? (parseFloat(el.value) || 0) : el.value.trim();
+  });
+  data[idx].updated = new Date().toISOString();
+  modSave(cfg, data);
+  closeModEdit();
+  renderModTable(_modEditKey);
+  toast('\u2713 Record updated.');
+}
+
+// ─── Generic View Detail ───────────────────────────
+function viewModRecord(modKey, id) {
+  const cfg = MOD_CFG[modKey];
+  const rec = modGet(cfg).find(r => r[cfg.pkField] === id);
+  if (!rec) return;
+  const rows = cfg.fields.map(f => {
+    let val = rec[f.k];
+    if (f.type === 'select' || f.k === cfg.statusField) {
+      val = testEnvBadge(String(val||'')) || esc(String(val||'-'));
+    } else if (f.type === 'number' && (f.k==='passPct'||f.k==='accuracy'||f.k==='pctDDR')) {
+      val = passPctBar(val);
+    } else {
+      val = esc(String(val||'-'));
+    }
+    return `<tr><td style="padding:5px 8px;color:var(--muted);min-width:170px;vertical-align:top">${f.label}</td><td>${val}</td></tr>`;
+  }).join('');
+  document.getElementById('detailContent').innerHTML =
+    `<h2 style="margin-bottom:14px">${cfg.icon} ${esc(String(rec[cfg.pkField]||''))}</h2>
+     <table style="width:100%;font-size:.87rem;border-collapse:collapse">${rows}</table>`;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+// ─── Generic Export CSV ────────────────────────────
+function exportModCSV(modKey) {
+  const cfg  = MOD_CFG[modKey];
+  const data = modGet(cfg);
+  if (!data.length) { toast('No records to export.'); return; }
+  const keys    = cfg.fields.map(f => f.k);
+  const headers = cfg.fields.map(f => f.label.replace(' *',''));
+  const csvRows = [headers.join(','), ...data.map(r =>
+    keys.map(k => `"${String(r[k]||'').replace(/"/g,'""').replace(/\n/g,' ')}"`).join(',')
+  )];
+  const blob = new Blob([csvRows.join('\r\n')], {type:'text/csv'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `${cfg.key}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('\u2713 CSV exported!');
+}
+
+// ─── Generic Import Excel ──────────────────────────
+function importModExcel(event, modKey) {
+  const cfg  = MOD_CFG[modKey];
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb   = XLSX.read(e.target.result, {type:'array', raw:false, cellDates:true});
+      const sn   = wb.SheetNames.find(s => s.trim().toLowerCase() === cfg.excelSheet.toLowerCase())
+                   || wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {defval:''});
+      if (!rows.length) { toast('\u26A0 No data rows found.'); return; }
+
+      const data = modGet(cfg);
+      let added = 0, updated = 0, skipped = 0;
+
+      rows.forEach(rawRow => {
+        // Normalise keys
+        const r = {};
+        Object.keys(rawRow).forEach(k => { r[k.toLowerCase().trim().replace(/\s+/g,' ')] = rawRow[k]; });
+
+        const rec = {};
+        cfg.fields.forEach(f => {
+          // Try field label (lowercase) and field key as column aliases
+          const labelKey = f.label.toLowerCase().replace(' *','').replace(/\s+/g,' ');
+          const raw = r[labelKey] !== undefined ? r[labelKey] : r[f.k.toLowerCase()];
+          if (raw === undefined || raw === '') return;
+          if (raw instanceof Date) { rec[f.k] = isNaN(raw) ? '' : raw.toISOString().split('T')[0]; }
+          else if (f.type === 'number') { rec[f.k] = parseFloat(raw) || 0; }
+          else { rec[f.k] = String(raw).trim(); }
+        });
+
+        const pk = rec[cfg.pkField];
+        if (!pk) { skipped++; return; }
+
+        const idx = data.findIndex(x => x[cfg.pkField] === pk);
+        if (idx >= 0) {
+          Object.assign(data[idx], rec, {updated: new Date().toISOString()});
+          updated++;
+        } else {
+          data.push({...rec, created: new Date().toISOString()});
+          added++;
+        }
+      });
+
+      if (added + updated > 0) {
+        modSave(cfg, data);
+        renderModTable(modKey);
+        toast(`\u2713 Imported: ${added} added, ${updated} updated${skipped?', '+skipped+' skipped':''}.`, 4000);
+      } else {
+        toast(`\u26A0 Nothing imported. ${skipped} row(s) skipped (no matching ID column).`, 5000);
+      }
+    } catch(err) {
+      toast('\u26A0 Failed to read Excel: ' + err.message);
+      console.error('Module import error:', err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
 }
 
 // ════════════════════════════════════════════
